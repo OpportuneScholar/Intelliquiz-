@@ -132,16 +132,29 @@ function toggleBookmark() {
 }
 
 let saveTimers = {};
+let pendingSaves = {};
 function autosave(questionId, payload) {
   clearTimeout(saveTimers[questionId]);
   saveTimers[questionId] = setTimeout(async () => {
-    try {
-      await IQ.api('/student-exam/save', { method: 'POST', body: { questionId, examId: examData.examId, ...payload } });
-    } catch (err) {
-      // Silent fail is acceptable for autosave blips; next save attempt will retry.
-      console.warn('Autosave failed:', err.message);
-    }
+    const task = IQ.api('/student-exam/save', { method: 'POST', body: { questionId, examId: examData.examId, ...payload } });
+    pendingSaves[questionId] = task;
+    try { await task; }
+    catch (err) { console.warn('Autosave failed:', err.message); }
+    finally { if (pendingSaves[questionId] === task) delete pendingSaves[questionId]; }
   }, 250);
+}
+async function flushPendingSaves() {
+  for (const id of Object.keys(saveTimers)) {
+    clearTimeout(saveTimers[id]);
+    delete saveTimers[id];
+    const q = examData.questions.find(item => item.id === id);
+    if (q) {
+      const payload = { selectedOption: q.selectedOption || '', isBookmarked: !!q.isBookmarked };
+      const task = IQ.api('/student-exam/save', { method: 'POST', body: { questionId: id, examId: examData.examId, ...payload } });
+      pendingSaves[id] = task;
+    }
+  }
+  await Promise.all(Object.values(pendingSaves));
 }
 
 // ---------------- Palette ----------------
