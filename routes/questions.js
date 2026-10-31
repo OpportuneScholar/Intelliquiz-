@@ -14,7 +14,7 @@ async function syncMarks(examId){const result=await Question.aggregate([{$match:
 router.get('/exams/:examId/questions',async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
  const page=Math.max(1,Number(req.query.page)||1),limit=Math.min(100,Math.max(1,Number(req.query.limit)||20)),filter={exam_id:exam._id};
- if(req.query.search)filter.question_text={$regex:String(req.query.search).split('').map(ch => '.*+?^${}()|[]\\\\'.includes(ch) ? '\\\\' + ch : ch).join('')
+ if(req.query.search){const escaped=String(req.query.search).split('').map(ch => '.*+?^${}()|[]\\'.includes(ch) ? String.fromCharCode(92)+ch : ch).join('');filter.question_text={$regex:escaped,$options:'i'};}
  if(req.query.category)filter.category=req.query.category;if(req.query.difficulty)filter.difficulty=req.query.difficulty;
  const [total,questions]=await Promise.all([Question.countDocuments(filter),Question.find(filter).sort({_id:-1}).skip((page-1)*limit).limit(limit).lean()]);
  res.json({success:true,questions:questions.map(q=>({...q,id:String(q._id)})),total,page,limit});
