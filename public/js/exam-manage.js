@@ -247,9 +247,20 @@ async function saveQuestion(e) {
 
 
 async function importBankQuestions(){
- const file=document.getElementById('bank-file').files[0],subject=document.getElementById('bank-subject').value.trim(),unit=document.getElementById('bank-unit').value.trim(),msg=document.getElementById('bank-import-message');
+ const file=document.getElementById('bank-file').files[0],subject=document.getElementById('bank-subject').value.trim(),unit=document.getElementById('bank-unit').value.trim(),msg=document.getElementById('bank-import-message'),btn=document.getElementById('bank-import-submit');
  if(!file||!subject||!unit){msg.textContent='Select a JSON file and enter subject and unit.';return;}
- try{const questions=JSON.parse(await file.text());if(!Array.isArray(questions))throw new Error('JSON must contain an array of question objects.');const r=await IQ.api('/question-bank/import',{method:'POST',body:{subject,unit,questions}});msg.textContent='Imported '+r.imported+'; skipped '+r.skipped+'.';IQ.toast(r.message||'Question bank imported.','success');document.getElementById('bank-file').value='';}catch(e){msg.textContent=e.message;IQ.toast(e.message,'error');}
+ btn.disabled=true;btn.textContent='Importing…';msg.textContent='';
+ try{
+  const parsed=JSON.parse(await file.text());
+  const questions=Array.isArray(parsed)?parsed:(parsed.questions||parsed.data||parsed.items);
+  if(!Array.isArray(questions))throw new Error('JSON must contain an array, or an object with a questions array.');
+  const r=await IQ.api('/question-bank/import',{method:'POST',body:{subject,unit,questions}});
+  msg.textContent='Imported '+r.imported+'; skipped '+r.skipped+'.'+(r.errors?.length?' First issue: '+r.errors[0].message:'');
+  IQ.toast(r.message||'Question bank imported.','success');
+  document.getElementById('bank-file').value='';
+  await loadBankQuestions();
+ }catch(e){msg.textContent=e.message;IQ.toast(e.message,'error');}
+ finally{btn.disabled=false;btn.textContent='Import and Save';}
 }
 async function loadBankQuestions(){
  const filter=document.getElementById('bank-unit-filter'),list=document.getElementById('bank-question-list');
