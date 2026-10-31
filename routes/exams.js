@@ -76,7 +76,7 @@ router.post('/', async (req, res, next) => {
       try {
         const bank = await UnitQuestion.find({
           teacher_id: req.user.id,
-          subject: { $regex: '^' + subject.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '$', $options: 'i' },
+          subject: subject,
           unit: { $in: selectedUnits }
         }).lean();
         if (bank.length) {
