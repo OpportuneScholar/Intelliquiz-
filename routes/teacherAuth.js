@@ -47,7 +47,7 @@ router.post('/forgot-password', async (req, res) => {
       await teacher.save();
       const base = process.env.APP_BASE_URL.replace(/\/$/, '');
       const url = base + '/reset-password.html?role=teacher&token=' + raw;
-      const safeName = String(teacher.name || '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[ch]));
+      const safeName = String(teacher.name || '').replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
       const response = await fetch('https://api.resend.com/emails', {
         method:'POST', headers:{ Authorization:'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type':'application/json' },
         body:JSON.stringify({ from:process.env.RESEND_FROM_EMAIL, to:[teacher.email], subject:'Reset your IntelliQuiz teacher password', html:'<p>Hello ' + safeName + '</p><p>Use the link below to reset your teacher account password. It expires in 30 minutes.</p><p><a href=\"' + url + '\">Reset password</a></p><p>If you did not request this, ignore this email.</p>' })
