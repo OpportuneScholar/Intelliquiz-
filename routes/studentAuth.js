@@ -53,16 +53,18 @@ router.post('/forgot-password',async(req,res,next)=>{try{
  if(email){
   const student=await Student.findOne({email});
   if(student){
-   if(!process.env.RESEND_API_KEY||!process.env.RESEND_FROM_EMAIL||!process.env.APP_BASE_URL)return res.status(503).json({success:false,message:'Password reset email is not configured yet. Please contact the administrator.'});
+   const configured=process.env.RESEND_API_KEY&&process.env.RESEND_FROM_EMAIL&&process.env.APP_BASE_URL;
+   if(!configured){console.error('[password-reset] Resend is not configured; set RESEND_API_KEY, RESEND_FROM_EMAIL and APP_BASE_URL in Render.');return res.json({success:true,message:generic});}
    const raw=crypto.randomBytes(32).toString('hex'),hash=crypto.createHash('sha256').update(raw).digest('hex');
    student.password_reset_token_hash=hash;student.password_reset_expires_at=new Date(Date.now()+30*60*1000);await student.save();
    const url=`${process.env.APP_BASE_URL.replace(/\/$/,'')}/reset-password.html?token=${raw}`;
-   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[student.email],subject:'Reset your IntelliQuiz password',html:`<p>Hello ${student.name.replace(/[&<>"]/g,'')}</p><p>Use the link below to reset your password. It expires in 30 minutes.</p><p><a href="${url}">Reset password</a></p><p>If you did not request this, ignore this email.</p>`})});
-   if(!response.ok){const details=await response.text();console.error('[resend] Email delivery failed:',details);return res.status(502).json({success:false,message:'Could not send reset email. Please try again later.'});}
+   const escapeHtml=value=>String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[student.email],subject:'Reset your IntelliQuiz password',html:`<p>Hello ${escapeHtml(student.name)}</p><p>Use the link below to reset your password. It expires in 30 minutes.</p><p><a href="${url}">Reset password</a></p><p>If you did not request this, ignore this email.</p>`})});
+   if(!response.ok){console.error('[resend] Email delivery failed:',await response.text());}
   }
  }
  res.json({success:true,message:generic});
-}catch(err){next(err);}});
+}catch(err){console.error('[password-reset] Request failed:',err.message);res.json({success:true,message:'If an account exists for this email, password reset instructions have been sent.'});}});
 router.post('/reset-password',async(req,res,next)=>{try{
  const {token,password}=req.body;
  if(!token||!password||String(password).length<8)return res.status(400).json({success:false,message:'A valid reset token and password of at least 8 characters are required.'});
