@@ -11,7 +11,17 @@ document.addEventListener('DOMContentLoaded',async function(){
  const set=(id,v)=>{if($(id))$(id).textContent=v==null||v===''?'—':v;};
  async function load(){ $('load-error').hidden=true;$('dashboard-content').hidden=false;
   try{
-   const list=await IQ.api('/student/exams'); const exams=list.exams||[]; const holder=$('joined-exams'); holder.innerHTML=exams.length?exams.map(x=>'<button class="btn btn-ghost btn-sm" data-exam-id="'+IQ.escapeHtml(x.id)+'" style="margin:4px">'+IQ.escapeHtml(x.title)+' · '+IQ.escapeHtml(x.controllerId)+'</button>').join(''):'<p class="text-muted">No exams joined yet.</p>'; holder.querySelectorAll('[data-exam-id]').forEach(btn=>btn.addEventListener('click',()=>{selectedExamId=btn.dataset.examId;history.replaceState({},'','?examId='+encodeURIComponent(selectedExamId));load();})); const d=await IQ.api('/student-exam/status'+(selectedExamId?'?examId='+encodeURIComponent(selectedExamId):'')),s=d.student||{},e=d.exam||{},a=d.submission||{};
+   const list=await IQ.api('/student/exams'); const exams=list.exams||[]; if(!selectedExamId&&exams.length) selectedExamId=exams[0].id; const holder=$('joined-exams'); holder.innerHTML=exams.length?exams.map(x=>'<button class="btn btn-ghost btn-sm" data-exam-id="'+IQ.escapeHtml(x.id)+'" style="margin:4px">'+IQ.escapeHtml(x.title)+' · '+IQ.escapeHtml(x.controllerId)+'</button>').join(''):'<p class="text-muted">No exams joined yet.</p>'; holder.querySelectorAll('[data-exam-id]').forEach(btn=>btn.addEventListener('click',()=>{selectedExamId=btn.dataset.examId;history.replaceState({},'','?examId='+encodeURIComponent(selectedExamId));load();})); if(!selectedExamId){
+   set('welcome-name',user.name);set('welcome-subtitle','Join an examination using the Controller ID provided by your teacher.');
+   set('p-name',user.name);set('p-roll',user.rollNumber);set('p-email',user.email);
+   set('stat-status','Not joined');set('stat-total','—');set('stat-score','—');
+   $('exam-badge').textContent='No exam selected';$('status-banner').textContent='You have not joined an examination yet. Enter your teacher’s Controller ID above to get started.';$('exam-actions').innerHTML='';
+   set('exam-title','No examination selected');set('exam-subject','');
+   set('exam-detail-title','—');set('exam-detail-subject','');
+   set('p-controller','—');set('p-exam','—');set('p-duration','—');set('p-marks','—');set('p-passing','—');set('p-attempt','—');
+   return;
+  }
+  const d=await IQ.api('/student-exam/status?examId='+encodeURIComponent(selectedExamId)),s=d.student||{},e=d.exam||{},a=d.submission||{};
    set('welcome-name',s.name||user.name);set('welcome-subtitle',e.subject?'Your '+e.subject+' examination at a glance.':'Your examination overview.');
    set('exam-title',e.title);set('exam-subject',e.subject);set('exam-detail-title',e.title);set('exam-detail-subject',e.subject);
    set('p-name',s.name);set('p-roll',s.rollNumber);set('p-email',s.email);set('p-controller',e.controllerId);set('p-registered',s.registeredAt?new Date(s.registeredAt).toLocaleDateString():null);set('p-exam',e.title);
