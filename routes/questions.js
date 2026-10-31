@@ -8,7 +8,7 @@ const router=express.Router();router.use(verifyToken,requireRole('teacher'));
 const uploadDir=path.join(__dirname,'..','uploads','questions');fs.mkdirSync(uploadDir,{recursive:true});
 const storage=multer.diskStorage({destination:(req,file,cb)=>cb(null,uploadDir),filename:(req,file,cb)=>cb(null,`${Date.now()}-${Math.round(Math.random()*1e9)}${path.extname(file.originalname)}`)});
 const upload=multer({storage,limits:{fileSize:3*1024*1024},fileFilter:(req,file,cb)=>{const ok=['.png','.jpg','.jpeg','.gif','.webp'].includes(path.extname(file.originalname).toLowerCase());cb(ok?null:new Error('Only image files are allowed for question images.'),ok);}});
-const validId=id=>/^[a-f\\d]{24}$/i.test(String(id));
+const validId=id=>/^[a-f\d]{24}$/i.test(String(id));
 async function ownsExam(id,teacherId){return validId(id)?Exam.findOne({_id:id,teacher_id:teacherId}):null;}
 async function syncMarks(examId){const result=await Question.aggregate([{$match:{exam_id:examId}},{$group:{_id:null,total:{$sum:'$marks'}}}]);await Exam.updateOne({_id:examId},{$set:{total_marks:result[0]?.total||0}});}
 router.get('/exams/:examId/questions',async(req,res,next)=>{try{
