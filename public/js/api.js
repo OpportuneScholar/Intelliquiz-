@@ -43,12 +43,6 @@ const IQ = (() => {
       clearSession();
       toast('Your session has expired. Please log in again.', 'error');
       setTimeout(() => (window.location.href = '/'), 1200);
-    } else if (res.status === 403 && auth) {
-      // A role mismatch usually means the browser has a stale or mismatched token.
-      // Clear it so the user can establish a fresh session through the correct login.
-      clearSession();
-      toast('Your session no longer has the required access. Please log in again with the correct account.', 'error');
-      setTimeout(() => (window.location.href = '/'), 1200);
     }
 
     if (!res.ok || data.success === false) {
