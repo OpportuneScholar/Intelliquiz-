@@ -3,7 +3,7 @@ const {Parser}=require('json2csv');
 const {Exam,Question,Student,Submission,Answer}=require('../database/db');
 const {verifyToken,requireRole}=require('../middleware/auth');
 const router=express.Router();router.use(verifyToken,requireRole('teacher'));
-const validId=id=>/^[a-f\\d]{24}$/i.test(String(id));
+const validId=id=>/^[a-f\d]{24}$/i.test(String(id));
 async function ownsExam(id,teacherId){return validId(id)?Exam.findOne({_id:id,teacher_id:teacherId}):null;}
 router.get('/overview',async(req,res,next)=>{try{
  const teacherId=req.user.id,exams=await Exam.find({teacher_id:teacherId}).select('_id status').lean(),ids=exams.map(e=>e._id);
