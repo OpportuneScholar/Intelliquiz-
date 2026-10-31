@@ -4,6 +4,7 @@ const {verifyToken,requireRole}=require('../middleware/auth');
 const router=express.Router();router.use(verifyToken,requireRole('student'));
 const validId=id=>/^[a-f\d]{24}$/i.test(String(id));
 const shuffle=a=>{const x=[...a];for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];}return x;};
+function stableOptionShuffle(options,submissionId,questionId){let seed=0;for(const ch of `${submissionId}:${questionId}`)seed=(seed*31+ch.charCodeAt(0))>>>0;return [...options].sort((a,b)=>{const score=k=>{let h=seed;for(const ch of k)h=(h*33+ch.charCodeAt(0))>>>0;return h;};return score(a.key)-score(b.key);});}
 async function context(id){if(!validId(id))return {};const student=await Student.findById(id);if(!student)return {};const [exam,submission]=await Promise.all([Exam.findById(student.exam_id),Submission.findOne({student_id:student._id,exam_id:student.exam_id})]);return {student,exam,submission};}
 router.get('/status',async(req,res,next)=>{try{const {student,exam,submission}=await context(req.user.id);if(!student||!exam)return res.status(404).json({success:false,message:'Student record not found.'});res.json({success:true,student:{id:student.id,name:student.name,rollNumber:student.roll_number,email:student.email,controllerId:student.controller_id,registeredAt:student.registered_at},exam:{id:exam.id,title:exam.title,subject:exam.subject,instructions:exam.instructions,durationMinutes:exam.duration_minutes,totalMarks:exam.total_marks,passingMarks:exam.passing_marks,startDate:exam.start_date,endDate:exam.end_date,startTime:exam.start_time,endTime:exam.end_time,status:exam.status},submission:submission?{status:submission.status,startedAt:submission.started_at,submittedAt:submission.submitted_at,score:submission.score,totalMarks:submission.total_marks}:{status:'not_started'}});}catch(err){next(err);}});
 router.post('/start',async(req,res,next)=>{try{
@@ -20,7 +21,7 @@ router.post('/start',async(req,res,next)=>{try{
  }
  const ids=questionOrder.filter(validId);const [rows,answers]=await Promise.all([Question.find({_id:{$in:ids},exam_id:exam._id}).lean(),Answer.find({submission_id:submission._id}).lean()]);
  const byId=Object.fromEntries(rows.map(q=>[String(q._id),q]));const answerByQ=Object.fromEntries(answers.map(a=>[String(a.question_id),a]));
- const questions=questionOrder.filter(id=>byId[id]).map(id=>{const q=byId[id];let options=['a','b','c','d'].map(k=>({key:k,text:q['option_'+k]}));if(exam.shuffle_options)options=shuffle(options);const a=answerByQ[id];return{id,questionText:q.question_text,imagePath:q.image_path,marks:q.marks,options,selectedOption:a?.selected_option||null,isBookmarked:!!a?.is_bookmarked};});
+ const questions=questionOrder.filter(id=>byId[id]).map(id=>{const q=byId[id];let options=['a','b','c','d'].map(k=>({key:k,text:q['option_'+k]}));if(exam.shuffle_options)options=stableOptionShuffle(options,submission.id,id);const a=answerByQ[id];return{id,questionText:q.question_text,imagePath:q.image_path,marks:q.marks,options,selectedOption:a?.selected_option||null,isBookmarked:!!a?.is_bookmarked};});
  res.json({success:true,submissionId:submission.id,startedAt:submission.started_at,durationMinutes:exam.duration_minutes,instructions:exam.instructions,title:exam.title,questions});
 }catch(err){next(err);}});
 router.post('/save',async(req,res,next)=>{try{
