@@ -17,7 +17,7 @@ router.get('/overview',async(req,res,next)=>{try{
 }catch(err){next(err);}});
 router.get('/exams/:examId/students',async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
- const filter={exam_id:exam._id};if(req.query.search){const escaped=String(req.query.search).split('').map(ch => '.*+?^${}()|[]\\\\'.includes(ch) ? '\\\\' + ch : ch).join('')
+ const filter={exam_id:exam._id};if(req.query.search){const escaped=String(req.query.search).split('').map(ch => '.*+?^${}()|[]\\'.includes(ch) ? String.fromCharCode(92)+ch : ch).join('');filter.$or=[{name:{$regex:escaped,$options:'i'}},{roll_number:{$regex:escaped,$options:'i'}}];}
  const students=await Student.find(filter).sort({name:1}).lean();const subs=await Submission.find({exam_id:exam._id}).lean();const byStudent=Object.fromEntries(subs.map(s=>[String(s.student_id),s]));
  let rows=students.map(s=>{const sub=byStudent[String(s._id)]||{};return{id:String(s._id),name:s.name,roll_number:s.roll_number,email:s.email,registered_at:s.registered_at,status:sub.status||'not_started',score:sub.score??0,total_marks:sub.total_marks??0,submitted_at:sub.submitted_at,time_taken_seconds:sub.time_taken_seconds};});
  if(req.query.status)rows=rows.filter(s=>s.status===req.query.status);res.json({success:true,students:rows});
@@ -46,6 +46,6 @@ router.get('/exams/:examId/export.csv',async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
  const students=await Student.find({exam_id:exam._id}).lean(),subs=await Submission.find({exam_id:exam._id}).lean(),byStudent=Object.fromEntries(subs.map(s=>[String(s.student_id),s]));
  const rows=students.map(s=>{const sub=byStudent[String(s._id)]||{},total=Number(sub.total_marks)||0,score=Number(sub.score)||0;return{'Student Name':s.name,'Roll Number':s.roll_number,Email:s.email||'',Status:sub.status||'not_started',Score:score,'Total Marks':total,Percentage:total?Math.round(score/total*10000)/100:0,Correct:sub.correct_count||0,Incorrect:sub.incorrect_count||0,Skipped:sub.skipped_count||0,'Time Taken (s)':sub.time_taken_seconds??'','Submitted At':sub.submitted_at||''};}).sort((a,b)=>b.Score-a.Score);
- const csv=new Parser().parse(rows);res.setHeader('Content-Type','text/csv');res.setHeader('Content-Disposition',`attachment; filename="${exam.title.replace(/\\W+/g,'_')}_results.csv"`);res.send(csv);
+ const csv=new Parser().parse(rows);res.setHeader('Content-Type','text/csv');res.setHeader('Content-Disposition',`attachment; filename="${exam.title.replaceAll(' ','_')}_results.csv"`);res.send(csv);
 }catch(err){next(err);}});
 module.exports=router;
