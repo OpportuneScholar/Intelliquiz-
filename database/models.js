@@ -10,4 +10,5 @@ const submissionSchema = new mongoose.Schema({student_id:{type:mongoose.Schema.T
 submissionSchema.index({student_id:1,exam_id:1},{unique:true});
 const answerSchema = new mongoose.Schema({submission_id:{type:mongoose.Schema.Types.ObjectId,ref:'Submission',required:true,index:true},question_id:{type:mongoose.Schema.Types.ObjectId,ref:'Question',required:true},selected_option:String,is_correct:Boolean,is_bookmarked:{type:Boolean,default:false}},opts);
 answerSchema.index({submission_id:1,question_id:1},{unique:true});
-const UnitQuestion=mongoose.model('UnitQuestion',unitQuestionSchema);\nmodule.exports={UnitQuestion,Teacher:mongoose.model('Teacher',teacherSchema),Exam:mongoose.model('Exam',examSchema),Question:mongoose.model('Question',questionSchema),Student:mongoose.model('Student',studentSchema),Submission:mongoose.model('Submission',submissionSchema),Answer:mongoose.model('Answer',answerSchema)};
+const UnitQuestion=mongoose.model('UnitQuestion',unitQuestionSchema);
+module.exports={UnitQuestion,Teacher:mongoose.model('Teacher',teacherSchema),Exam:mongoose.model('Exam',examSchema),Question:mongoose.model('Question',questionSchema),Student:mongoose.model('Student',studentSchema),Submission:mongoose.model('Submission',submissionSchema),Answer:mongoose.model('Answer',answerSchema)};
