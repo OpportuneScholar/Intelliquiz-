@@ -1,57 +1,29 @@
-// public/js/student-dashboard.js
-
-document.addEventListener('DOMContentLoaded', async () => {
-  if (!IQ.requireRole('student')) return;
-
-  const user = IQ.getUser();
-  document.getElementById('welcome-text').textContent = `Hi, ${user.name}`;
-  document.getElementById('theme-toggle').textContent = (localStorage.getItem('iq_theme') === 'light') ? '☀️' : '🌙';
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    const t = IQ.toggleTheme();
-    document.getElementById('theme-toggle').textContent = t === 'light' ? '☀️' : '🌙';
-  });
-  document.getElementById('logout-btn').addEventListener('click', IQ.logout);
-
-  try {
-    const { student, exam, submission } = await IQ.api('/student-exam/status');
-
-    document.getElementById('exam-title-h').textContent = exam.title;
-    document.getElementById('exam-subject-p').textContent = exam.subject || '';
-    document.getElementById('p-name').textContent = student.name;
-    document.getElementById('p-roll').textContent = student.rollNumber;
-    document.getElementById('p-exam').textContent = exam.title;
-    document.getElementById('p-duration').textContent = `${exam.durationMinutes} minutes`;
-    document.getElementById('p-marks').textContent = exam.totalMarks;
-    document.getElementById('p-passing').textContent = exam.passingMarks;
-
-    const body = document.getElementById('status-body');
-
-    if (submission.status === 'submitted') {
-      body.innerHTML = `
-        <span class="badge badge-submitted" style="font-size:13px;padding:6px 16px;">Already Submitted</span>
-        <p class="text-muted mt-16">You have already submitted this examination. Reattempt is not allowed.</p>
-        <button class="btn btn-primary mt-16" onclick="window.location.href='/student/result.html'">View My Result</button>
-      `;
-    } else if (exam.status !== 'active') {
-      body.innerHTML = `
-        <span class="badge badge-draft" style="font-size:13px;padding:6px 16px;">Not Active</span>
-        <p class="text-muted mt-16">Your teacher has not activated this exam yet. Please check back later.</p>
-      `;
-    } else if (submission.status === 'in_progress') {
-      body.innerHTML = `
-        <span class="badge badge-in_progress" style="font-size:13px;padding:6px 16px;">In Progress</span>
-        <p class="text-muted mt-16">You have an exam in progress. Resume where you left off.</p>
-        <button class="btn btn-primary mt-16" onclick="window.location.href='/student/take-exam.html'">Resume Exam</button>
-      `;
-    } else {
-      body.innerHTML = `
-        <span class="badge badge-active" style="font-size:13px;padding:6px 16px;">Ready to Start</span>
-        ${exam.instructions ? `<p class="text-muted mt-16" style="text-align:left; white-space:pre-line;">${IQ.escapeHtml(exam.instructions)}</p>` : ''}
-        <p class="text-muted mt-16">You can attempt this exam only once. Once submitted, it cannot be reopened.</p>
-        <button class="btn btn-primary mt-16" onclick="window.location.href='/student/take-exam.html'">Start Exam</button>
-      `;
-    }
-  } catch (err) {
-    IQ.toast(err.message, 'error');
-  }
+document.addEventListener('DOMContentLoaded',async function(){
+ if(!IQ.requireRole('student'))return;
+ const user=IQ.getUser()||{},$=id=>document.getElementById(id);
+ $('welcome-text').textContent=user.name?'Hi, '+user.name:'Student';$('welcome-name').textContent=user.name||'Student';
+ $('theme-toggle').textContent=localStorage.getItem('iq_theme')==='light'?'☀️':'🌙';
+ $('theme-toggle').addEventListener('click',()=>{$('theme-toggle').textContent=IQ.toggleTheme()==='light'?'☀️':'🌙';});$('logout-btn').addEventListener('click',IQ.logout);
+ function section(name){document.querySelectorAll('.student-section').forEach(x=>x.classList.toggle('active',x.id===name));document.querySelectorAll('[data-section]').forEach(x=>x.classList.toggle('active',x.dataset.section===name));}
+ document.querySelectorAll('[data-section]').forEach(x=>x.addEventListener('click',()=>section(x.dataset.section)));
+ $('retry-btn').addEventListener('click',load);
+ const set=(id,v)=>{if($(id))$(id).textContent=v==null||v===''?'—':v;};
+ async function load(){ $('load-error').hidden=true;$('dashboard-content').hidden=false;
+  try{
+   const d=await IQ.api('/student-exam/status'),s=d.student||{},e=d.exam||{},a=d.submission||{};
+   set('welcome-name',s.name||user.name);set('welcome-subtitle',e.subject?'Your '+e.subject+' examination at a glance.':'Your examination overview.');
+   set('exam-title',e.title);set('exam-subject',e.subject);set('exam-detail-title',e.title);set('exam-detail-subject',e.subject);
+   set('p-name',s.name);set('p-roll',s.rollNumber);set('p-email',s.email);set('p-controller',s.controllerId);set('p-registered',s.registeredAt?new Date(s.registeredAt).toLocaleDateString():null);set('p-exam',e.title);
+   set('p-duration',e.durationMinutes!=null?e.durationMinutes+' minutes':null);set('p-marks',e.totalMarks);set('p-passing',e.passingMarks);set('p-attempt',a.status);set('stat-total',e.totalMarks);
+   let r=null;if(a.status==='submitted'){try{const rd=await IQ.api('/student-exam/result');r=rd.result||null;}catch(ex){console.warn('Result data unavailable',ex);}}
+   set('stat-status',a.status==='submitted'?'Submitted':a.status==='in_progress'?'In progress':e.status==='active'?'Ready':'Not active');set('stat-score',r?r.score+' / '+r.totalMarks:'—');
+   $('exam-badge').textContent=a.status==='submitted'?'Submitted':a.status==='in_progress'?'In progress':e.status==='active'?'Ready':'Not active';
+   if(a.status==='submitted'){$('status-banner').innerHTML='<strong>Examination submitted</strong><p class="text-muted">Your attempt is submitted. Review your result and performance.</p>';$('exam-actions').innerHTML='<a class="btn btn-primary" href="/student/result.html">View my result</a>';}
+   else if(a.status==='in_progress'){$('status-banner').innerHTML='<strong>Your examination is in progress</strong><p class="text-muted">Continue your saved attempt. Previous answers are retained.</p>';$('exam-actions').innerHTML='<a class="btn btn-primary" href="/student/take-exam.html">Resume examination</a>';}
+   else if(e.status==='active'){$('status-banner').innerHTML='<strong>You are ready to begin</strong><p class="text-muted">Review the instructions before starting. Only one submission is allowed.</p>';$('exam-actions').innerHTML='<a class="btn btn-primary" href="/student/take-exam.html">Start examination</a>';}
+   else{$('status-banner').innerHTML='<strong>Examination not active yet</strong><p class="text-muted">Your teacher has not activated this examination.</p>';$('exam-actions').innerHTML='';}
+   if(r){$('analytics-panel').innerHTML='<div class="student-stats"><div class="glass-card student-stat"><small>PERCENTAGE</small><strong>'+Number(r.percentage||0).toFixed(1)+'%</strong></div><div class="glass-card student-stat"><small>CORRECT</small><strong>'+(r.correct||0)+'</strong></div><div class="glass-card student-stat"><small>RANK</small><strong>'+(r.rank||'—')+' / '+(r.totalSubmitted||'—')+'</strong></div></div><p><strong>'+IQ.escapeHtml(r.remarks||'Result available')+'</strong></p><div class="progress-track"><div class="progress-fill" style="width:'+Math.max(0,Math.min(100,Number(r.percentage)||0))+'%"></div></div><p class="text-muted">Correct: '+(r.correct||0)+' · Incorrect: '+(r.incorrect||0)+' · Skipped: '+(r.skipped||0)+'</p>';}
+  }catch(err){$('dashboard-content').hidden=true;$('load-error').hidden=false;set('error-message',err.message||'Unable to load dashboard.');IQ.toast(err.message||'Unable to load dashboard data.','error');console.error('Student dashboard API error',err);}
+ }
+ await load();
 });
