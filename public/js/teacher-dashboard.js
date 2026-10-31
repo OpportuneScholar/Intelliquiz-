@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('ce-negative-value-wrap').style.display = e.target.checked ? 'block' : 'none';
   });
 
+  document.getElementById('ce-attempt-policy').addEventListener('change', e => { document.getElementById('ce-max-attempts-wrap').style.display = e.target.value === 'multiple' ? 'block' : 'none'; });
   document.getElementById('create-exam-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button[type=submit]');
@@ -47,7 +48,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         shuffleOptions: document.getElementById('ce-shuffle-o').checked,
         negativeMarking: document.getElementById('ce-negative').checked,
         negativeMarkValue: document.getElementById('ce-negative-value').value,
-        selectedUnits: [...document.getElementById('ce-units').selectedOptions].map(o => o.value)
+        selectedUnits: [...document.getElementById('ce-units').selectedOptions].map(o => o.value),
+        attemptPolicy: document.getElementById('ce-attempt-policy').value,
+        maxAttempts: document.getElementById('ce-attempt-policy').value === 'multiple' ? document.getElementById('ce-max-attempts').value : 1
       };
       const data = await IQ.api('/exams', { method: 'POST', body });
       IQ.toast(`Exam created! Controller ID: ${data.exam.controller_id}`, 'success', 6000);

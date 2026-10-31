@@ -37,6 +37,7 @@
   </div>
 </div>
 
+<nav class="teacher-nav" aria-label="Teacher navigation"><a href="/teacher/dashboard.html">▦ Dashboard</a><a href="/teacher/dashboard.html#exam-grid">▤ Examinations</a><a href="/teacher/results.html">▣ All Results</a><a href="/teacher/question-bank.html">☷ Question Bank</a></nav>
 <div class="page-shell">
   <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap; gap:12px;">
     <h2>Dashboard Overview</h2>
@@ -80,7 +81,8 @@
       </div>
       <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div class="field"><label>Passing Marks</label><input class="input" type="number" id="ce-passing" min="0" value="0"></div>
-        <div class="field"><label>Questions Per Attempt <span class="text-muted">(blank = all)</span></label><input class="input" type="number" id="ce-qpa" min="1"></div>
+        <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div class="field"><label>Attempt Policy</label><select class="input" id="ce-attempt-policy"><option value="single">Single attempt</option><option value="multiple">Multiple attempts</option></select></div><div class="field" id="ce-max-attempts-wrap" style="display:none"><label>Maximum attempts</label><input class="input" type="number" id="ce-max-attempts" min="2" max="10" value="2"></div></div>
+      <div class="field"><label>Questions Per Attempt <span class="text-muted">(blank = all)</span></label><input class="input" type="number" id="ce-qpa" min="1"></div>
       </div>
       <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div class="field"><label>Start Date</label><input class="input" type="date" id="ce-start-date"></div>
@@ -103,6 +105,7 @@
     </form>
   </div>
 </div>
+<style>.teacher-nav{display:flex;gap:10px;flex-wrap:wrap;padding:12px 24px;max-width:1300px;margin:auto;border-bottom:1px solid var(--glass-border)}.teacher-nav a{padding:10px 15px;border:1px solid var(--glass-border);border-radius:12px;background:var(--glass-bg);font-size:13px;font-weight:600}.teacher-nav a:hover{background:var(--grad-primary-soft)}@media(max-width:640px){.teacher-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 16px}.teacher-nav a{text-align:center;padding:11px 6px}}</style>
 
 <script src="/js/api.js"></script>
 <script src="/js/teacher-dashboard.js"></script>

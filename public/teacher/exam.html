@@ -42,6 +42,7 @@
   </div>
 </div>
 
+<nav class="teacher-nav" aria-label="Teacher navigation"><a href="/teacher/dashboard.html">▦ Dashboard</a><a href="/teacher/dashboard.html#exam-grid">▤ Examinations</a><a href="/teacher/results.html">▣ All Results</a><a href="/teacher/question-bank.html">☷ Question Bank</a></nav>
 <div class="page-shell">
   <h2 id="exam-title-h">Loading exam…</h2>
   <div class="glass-card controller-banner mt-16">
@@ -111,7 +112,7 @@
         <div class="field"><label>Subject</label><input class="input" id="st-subject"></div>
         <div class="field"><label>Instructions</label><textarea class="input" id="st-instructions" rows="3"></textarea></div>
         <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-          <div class="field"><label>Duration (minutes)</label><input class="input" type="number" id="st-duration" min="1"></div>
+          <div class="field"><label>Attempt Policy</label><select class="input" id="st-attempt-policy"><option value="single">Single attempt</option><option value="multiple">Multiple attempts</option></select></div><div class="field"><label>Maximum attempts (2–10)</label><input class="input" type="number" id="st-max-attempts" min="2" max="10" value="2"></div><div class="field"><label>Duration (minutes)</label><input class="input" type="number" id="st-duration" min="1"></div>
           <div class="field"><label>Passing Marks</label><input class="input" type="number" id="st-passing" min="0"></div>
         </div>
         <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
@@ -131,6 +132,7 @@
     </div>
   </div>
 </div>
+<style>.teacher-nav{display:flex;gap:10px;flex-wrap:wrap;padding:12px 24px;max-width:1300px;margin:auto;border-bottom:1px solid var(--glass-border)}.teacher-nav a{padding:10px 15px;border:1px solid var(--glass-border);border-radius:12px;background:var(--glass-bg);font-size:13px;font-weight:600}@media(max-width:640px){.teacher-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 16px}.teacher-nav a{text-align:center;padding:11px 6px}}</style>
 
 <!-- Add/Edit Question Modal -->
 <div class="modal-overlay" id="question-modal" style="display:none;">
