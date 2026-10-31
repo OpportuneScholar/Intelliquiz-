@@ -53,10 +53,62 @@ router.get('/exams/:examId/questions/export',async(req,res,next)=>{try{
  const questions=await Question.find({exam_id:exam._id}).lean();res.setHeader('Content-Disposition',`attachment; filename="questions-exam-${exam.id}.json"`);res.json(questions.map(q=>({...q,id:String(q._id)})));
 }catch(err){next(err);}});
 
-router.get('/question-bank/units',async(req,res,next)=>{try{const rows=await UnitQuestion.aggregate([{$match:{teacher_id:req.user._id||req.user.id}},{$group:{_id:{subject:'$subject',unit:'$unit'},count:{$sum:1}}},{$sort:{'_id.subject':1,'_id.unit':1}}]);res.json({success:true,units:rows.map(x=>({subject:x._id.subject||'',unit:x._id.unit,count:x.count}))});}catch(err){next(err);}});
-router.get('/question-bank/questions',async(req,res,next)=>{try{const filter={teacher_id:req.user.id};if(req.query.subject)filter.subject=req.query.subject;if(req.query.unit)filter.unit=req.query.unit;const questions=await UnitQuestion.find(filter).sort({unit:1,_id:-1}).lean();res.json({success:true,questions:questions.map(q=>({...q,id:String(q._id)}))});}catch(err){next(err);}});
-router.post('/question-bank/import',async(req,res,next)=>{try{const {subject,unit,questions}=req.body;if(!subject?.trim()||!unit?.trim()||!Array.isArray(questions)||!questions.length)return res.status(400).json({success:false,message:'Subject, unit and a non-empty questions array are required.'});if(questions.length>1000)return res.status(400).json({success:false,message:'Import is limited to 1000 questions per file.'});const docs=[],errors=[];questions.forEach((q,i)=>{const correct=String(q.correctOption||q.correct_option||'').toLowerCase();const vals=[q.questionText||q.question_text,q.optionA||q.option_a,q.optionB||q.option_b,q.optionC||q.option_c,q.optionD||q.option_d];if(vals.some(v=>!String(v||'').trim())||!['a','b','c','d'].includes(correct)){errors.push('Row '+(i+1)+': invalid question/options/correctOption');return;}docs.push({teacher_id:req.user.id,subject:subject.trim(),unit:unit.trim(),question_text:String(vals[0]).trim(),option_a:String(vals[1]).trim(),option_b:String(vals[2]).trim(),option_c:String(vals[3]).trim(),option_d:String(vals[4]).trim(),correct_option:correct,explanation:q.explanation||'',difficulty:q.difficulty||'medium',marks:Number(q.marks)||1});});if(docs.length)await UnitQuestion.insertMany(docs);res.status(201).json({success:true,imported:docs.length,skipped:errors.length,errors});}catch(err){next(err);}});
-router.post('/exams/:examId/questions/from-bank',async(req,res,next)=>{try{const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});const ids=Array.isArray(req.body.questionIds)?req.body.questionIds:[];if(!ids.length)return res.status(400).json({success:false,message:'Select at least one saved question.'});const saved=await UnitQuestion.find({_id:{$in:ids},teacher_id:req.user.id}).lean();if(saved.length!==ids.length)return res.status(400).json({success:false,message:'Some selected questions were not found in your question bank.'});const docs=saved.map(q=>({exam_id:exam._id,question_text:q.question_text,option_a:q.option_a,option_b:q.option_b,option_c:q.option_c,option_d:q.option_d,correct_option:q.correct_option,explanation:q.explanation,difficulty:q.difficulty,marks:q.marks,category:q.unit}));await Question.insertMany(docs);await syncMarks(exam._id);res.status(201).json({success:true,added:docs.length,message:docs.length+' questions added to this exam.'});}catch(err){next(err);}});
-router.delete('/question-bank/questions/:id',async(req,res,next)=>{try{if(!validId(req.params.id))return res.status(404).json({success:false,message:'Saved question not found.'});const deleted=await UnitQuestion.findOneAndDelete({_id:req.params.id,teacher_id:req.user.id});if(!deleted)return res.status(404).json({success:false,message:'Saved question not found.'});res.json({success:true,message:'Saved question deleted.'});}catch(err){next(err);}});
+router.get('/question-bank/units',async(req,res,next)=>{try{
+ const rows=await UnitQuestion.aggregate([
+  {$match:{teacher_id:new (require('mongoose').Types.ObjectId)(req.user.id)}},
+  {$group:{_id:{subject:'$subject',unit:'$unit'},count:{$sum:1}}},
+  {$sort:{'_id.subject':1,'_id.unit':1}}
+ ]);
+ res.json({success:true,units:rows.map(x=>({subject:x._id.subject||'',unit:x._id.unit,count:x.count}))});
+}catch(err){next(err);}});
+
+router.get('/question-bank/questions',async(req,res,next)=>{try{
+ const filter={teacher_id:req.user.id};
+ if(req.query.subject)filter.subject=String(req.query.subject).trim();
+ if(req.query.unit)filter.unit=String(req.query.unit).trim();
+ const questions=await UnitQuestion.find(filter).sort({subject:1,unit:1,_id:-1}).lean();
+ res.json({success:true,questions:questions.map(q=>({...q,id:String(q._id)}))});
+}catch(err){next(err);}});
+
+router.post('/question-bank/import',async(req,res,next)=>{try{
+ const {subject,unit}=req.body||{};
+ let questions=req.body?.questions;
+ if(!Array.isArray(questions)&&Array.isArray(req.body?.data))questions=req.body.data;
+ if(!Array.isArray(questions)&&Array.isArray(req.body?.items))questions=req.body.items;
+ if(!String(subject||'').trim()||!String(unit||'').trim()||!Array.isArray(questions)||!questions.length)
+  return res.status(400).json({success:false,message:'Subject, unit and a non-empty questions array are required.'});
+ if(questions.length>1000)return res.status(400).json({success:false,message:'Import is limited to 1000 questions per file.'});
+ const docs=[],errors=[];
+ questions.forEach((q,i)=>{
+  const correct=String(q.correctOption||q.correct_option||q.answer||'').trim().toLowerCase();
+  const values=[q.questionText||q.question_text||q.question,q.optionA||q.option_a||q.options?.[0],q.optionB||q.option_b||q.options?.[1],q.optionC||q.option_c||q.options?.[2],q.optionD||q.option_d||q.options?.[3]];
+  const answer=['a','b','c','d'].includes(correct)?correct:({a:'a',b:'b',c:'c',d:'d'}[correct]||'');
+  if(values.some(v=>!String(v||'').trim())||!answer){errors.push({row:i+1,message:'Question, four options and correctOption (a/b/c/d) are required.'});return;}
+  docs.push({teacher_id:req.user.id,subject:String(subject).trim(),unit:String(unit).trim(),question_text:String(values[0]).trim(),option_a:String(values[1]).trim(),option_b:String(values[2]).trim(),option_c:String(values[3]).trim(),option_d:String(values[4]).trim(),correct_option:answer,explanation:q.explanation||'',difficulty:q.difficulty||'medium',marks:Math.max(0.25,Number(q.marks)||1)});
+ });
+ if(!docs.length)return res.status(400).json({success:false,message:'No valid questions found in this file.',imported:0,skipped:errors.length,errors});
+ const inserted=await UnitQuestion.insertMany(docs,{ordered:false});
+ res.status(201).json({success:true,imported:inserted.length,skipped:errors.length,errors,message:'Imported '+inserted.length+' questions into '+String(subject).trim()+' / '+String(unit).trim()+'.'});
+}catch(err){next(err);}});
+
+router.post('/exams/:examId/questions/from-bank',async(req,res,next)=>{try{
+ const exam=await ownsExam(req.params.examId,req.user.id);
+ if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
+ const ids=Array.isArray(req.body.questionIds)?req.body.questionIds:[];
+ if(!ids.length)return res.status(400).json({success:false,message:'Select at least one saved question.'});
+ const saved=await UnitQuestion.find({_id:{$in:ids},teacher_id:req.user.id}).lean();
+ if(saved.length!==ids.length)return res.status(400).json({success:false,message:'Some selected questions were not found in your question bank.'});
+ const docs=saved.map(q=>({exam_id:exam._id,question_text:q.question_text,option_a:q.option_a,option_b:q.option_b,option_c:q.option_c,option_d:q.option_d,correct_option:q.correct_option,explanation:q.explanation,difficulty:q.difficulty,marks:q.marks,category:q.unit}));
+ await Question.insertMany(docs);
+ await syncMarks(exam._id);
+ res.status(201).json({success:true,added:docs.length,message:docs.length+' questions added to this exam.'});
+}catch(err){next(err);}});
+
+router.delete('/question-bank/questions/:id',async(req,res,next)=>{try{
+ if(!validId(req.params.id))return res.status(404).json({success:false,message:'Saved question not found.'});
+ const deleted=await UnitQuestion.findOneAndDelete({_id:req.params.id,teacher_id:req.user.id});
+ if(!deleted)return res.status(404).json({success:false,message:'Saved question not found.'});
+ res.json({success:true,message:'Saved question deleted.'});
+}catch(err){next(err);}});
 
 module.exports=router;
