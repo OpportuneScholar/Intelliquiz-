@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('export-questions-btn').addEventListener('click', () => {
     window.open(`/api/exams/${examId}/questions/export`, '_blank');
   });
+  document.getElementById('import-bank-btn').addEventListener('click',()=>{document.getElementById('bank-modal').style.display='flex';});
+  document.getElementById('bank-close').addEventListener('click',()=>document.getElementById('bank-modal').style.display='none');
+  document.getElementById('select-bank-btn').addEventListener('click',async()=>{document.getElementById('select-bank-modal').style.display='flex';await loadBankQuestions();});
+  document.getElementById('select-bank-close').addEventListener('click',()=>document.getElementById('select-bank-modal').style.display='none');
+  document.getElementById('bank-unit-filter').addEventListener('change',loadBankQuestions);
+  document.getElementById('bank-import-submit').addEventListener('click',importBankQuestions);
+  document.getElementById('bank-add-selected').addEventListener('click',addBankQuestionsToExam);
 
   // Students
   document.getElementById('s-search').addEventListener('input', debounce(loadStudents, 300));
@@ -238,7 +245,21 @@ async function saveQuestion(e) {
   } catch (err) { IQ.toast(err.message, 'error'); }
 }
 
-// ---------------- Students ----------------
+
+async function importBankQuestions(){
+ const file=document.getElementById('bank-file').files[0],subject=document.getElementById('bank-subject').value.trim(),unit=document.getElementById('bank-unit').value.trim(),msg=document.getElementById('bank-import-message');
+ if(!file||!subject||!unit){msg.textContent='Select a JSON file and enter subject and unit.';return;}
+ try{const questions=JSON.parse(await file.text());if(!Array.isArray(questions))throw new Error('JSON must contain an array of question objects.');const r=await IQ.api('/question-bank/import',{method:'POST',body:{subject,unit,questions}});msg.textContent='Imported '+r.imported+'; skipped '+r.skipped+'.';IQ.toast(r.message||'Question bank imported.','success');document.getElementById('bank-file').value='';}catch(e){msg.textContent=e.message;IQ.toast(e.message,'error');}
+}
+async function loadBankQuestions(){
+ const filter=document.getElementById('bank-unit-filter'),list=document.getElementById('bank-question-list');
+ try{const r=await IQ.api('/question-bank/questions'+(filter.value?'?unit='+encodeURIComponent(filter.value):''));const units=[...new Set(r.questions.map(q=>q.unit))];const current=filter.value;filter.innerHTML='<option value="">All saved units</option>'+units.map(u=>'<option value="'+IQ.escapeHtml(u)+'">'+IQ.escapeHtml(u)+'</option>').join('');filter.value=current;list.innerHTML=r.questions.length?r.questions.map(q=>'<label class="glass-card q-card" style="display:block"><input type="checkbox" class="bank-q-check" value="'+q.id+'"> <strong>'+IQ.escapeHtml(q.unit)+'</strong> · '+IQ.escapeHtml(q.question_text)+'<div class="text-muted">'+IQ.escapeHtml(q.subject)+' · '+q.marks+' marks</div></label>').join(''):'<p class="text-muted">No saved questions in this unit yet.</p>';}catch(e){list.textContent=e.message;}
+}
+async function addBankQuestionsToExam(){
+ const questionIds=[...document.querySelectorAll('.bank-q-check:checked')].map(x=>x.value);if(!questionIds.length){IQ.toast('Select at least one question.','error');return;}
+ try{const r=await IQ.api('/exams/'+examId+'/questions/from-bank',{method:'POST',body:{questionIds}});IQ.toast(r.message,'success');document.getElementById('select-bank-modal').style.display='none';await loadQuestions();await loadExam();}catch(e){IQ.toast(e.message,'error');}
+}
+\n// ---------------- Students ----------------
 async function loadStudents() {
   const tbody = document.querySelector('#students-table tbody');
   const search = document.getElementById('s-search').value;
