@@ -1,0 +1,8 @@
+node_modules/
+.env
+database/intelliquiz.db
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+*.log

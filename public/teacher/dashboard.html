@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard — IntelliQuiz</title>
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .quick-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+  .exam-card { padding: 20px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: transform .15s ease, box-shadow .2s ease; }
+  .exam-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+  .exam-card .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .exam-card .code { font-family: var(--font-mono); font-size: 12px; color: var(--cyan-300); background: rgba(34,211,238,.08); padding: 3px 9px; border-radius: 6px; letter-spacing: .03em; }
+  .exam-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .exam-meta { display: flex; gap: 16px; font-size: 12.5px; color: var(--text-muted); flex-wrap: wrap; }
+  .activity-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--glass-border); font-size: 13.5px; }
+  .activity-item:last-child { border-bottom: none; }
+  .modal .field { margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><img src="/assets/logo.png"><div class="ring"></div></div>
+<div id="toast-region"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <img src="/assets/logo.png" alt="">
+      <div><div class="brand-name">Intelli<span class="accent">Quiz</span></div></div>
+    </div>
+    <div class="flex items-center gap-12">
+      <span class="text-secondary" id="welcome-text" style="font-size:14px;"></span>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="page-shell">
+  <div class="flex justify-between items-center mb-16" style="flex-wrap:wrap; gap:12px;">
+    <h2>Dashboard Overview</h2>
+    <button class="btn btn-primary" id="create-exam-btn">+ Create New Exam</button>
+  </div>
+
+  <div class="stat-grid" id="stat-grid">
+    <!-- stat cards injected -->
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-title">Your Examinations</div>
+      <div class="exam-grid" id="exam-grid"></div>
+    </div>
+    <div>
+      <div class="section-title">Recent Activity</div>
+      <div class="glass-card card-pad" id="activity-panel">
+        <div class="empty-state"><div class="icon">📭</div>Nothing yet — activity appears as students take exams.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Exam Modal -->
+<div class="modal-overlay" id="create-modal" style="display:none;">
+  <div class="modal glass-card glass-card--strong card-pad">
+    <div class="flex justify-between items-center mb-16">
+      <h3>Create New Examination</h3>
+      <button class="btn btn-ghost btn-icon" id="close-modal">✕</button>
+    </div>
+    <form id="create-exam-form">
+      <div class="field"><label>Exam Title</label><input class="input" id="ce-title" required placeholder="e.g. Data Structures — Mid Semester"></div>
+      <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Subject</label><input class="input" id="ce-subject" placeholder="e.g. Computer Science"></div>
+        <div class="field"><label>Duration (minutes)</label><input class="input" type="number" id="ce-duration" required min="1" value="60"></div>
+      </div>
+      <div class="field"><label>Instructions <span class="text-muted">(shown to students before they start)</span></label>
+        <textarea class="input" id="ce-instructions" rows="3" placeholder="e.g. No negative marking. Do not refresh the page."></textarea>
+      </div>
+      <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Passing Marks</label><input class="input" type="number" id="ce-passing" min="0" value="0"></div>
+        <div class="field"><label>Questions Per Attempt <span class="text-muted">(blank = all)</span></label><input class="input" type="number" id="ce-qpa" min="1"></div>
+      </div>
+      <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Start Date</label><input class="input" type="date" id="ce-start-date"></div>
+        <div class="field"><label>End Date</label><input class="input" type="date" id="ce-end-date"></div>
+      </div>
+      <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Start Time</label><input class="input" type="time" id="ce-start-time"></div>
+        <div class="field"><label>End Time</label><input class="input" type="time" id="ce-end-time"></div>
+      </div>
+      <div class="flex gap-24 mb-16" style="flex-wrap:wrap;">
+        <label class="checkbox-row"><input type="checkbox" id="ce-shuffle-q" checked> Shuffle questions</label>
+        <label class="checkbox-row"><input type="checkbox" id="ce-shuffle-o" checked> Shuffle options</label>
+        <label class="checkbox-row"><input type="checkbox" id="ce-negative"> Negative marking</label>
+      </div>
+      <div class="field" id="ce-negative-value-wrap" style="display:none;">
+        <label>Marks deducted per wrong answer</label>
+        <input class="input" type="number" step="0.25" id="ce-negative-value" value="0.25">
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Create Exam &amp; Generate Controller ID</button>
+    </form>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/teacher-dashboard.js"></script>
+</body>
+</html>

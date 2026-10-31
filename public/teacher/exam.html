@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Exam — IntelliQuiz</title>
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tabbar { display: flex; gap: 6px; border-bottom: 1px solid var(--glass-border); margin-bottom: 22px; flex-wrap: wrap; }
+  .tabbar button { background: none; border: none; padding: 12px 18px; color: var(--text-muted); font-weight: 700; font-size: 13.5px; border-bottom: 2px solid transparent; }
+  .tabbar button.active { color: var(--text-primary); border-color: var(--violet-500); }
+  .tabpanel { display: none; } .tabpanel.active { display: block; animation: fadeUp .25s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+  .controller-banner { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+  .controller-code { font-family: var(--font-mono); font-size: 22px; font-weight: 700; letter-spacing: .05em;
+    background: var(--grad-primary); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .toolbar .input { max-width: 240px; }
+  .q-card { padding: 18px; margin-bottom: 12px; }
+  .q-card .opts { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0; font-size:13.5px; }
+  .opt-correct { color: var(--green-500); font-weight: 700; }
+  .q-actions { display:flex; gap:8px; margin-top:10px; }
+  .pill-tag { font-size:11px; padding:3px 9px; border-radius:99px; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><img src="/assets/logo.png"><div class="ring"></div></div>
+<div id="toast-region"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" style="cursor:pointer;" onclick="window.location.href='/teacher/dashboard.html'">
+      <img src="/assets/logo.png" alt="">
+      <div><div class="brand-name">Intelli<span class="accent">Quiz</span></div></div>
+    </div>
+    <div class="flex items-center gap-12">
+      <button class="btn btn-ghost btn-sm" onclick="window.location.href='/teacher/dashboard.html'">← All Exams</button>
+      <button class="theme-toggle" id="theme-toggle">🌙</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="page-shell">
+  <h2 id="exam-title-h">Loading exam…</h2>
+  <div class="glass-card controller-banner mt-16">
+    <div>
+      <div class="text-muted" style="font-size:12px;">EXAM CONTROLLER ID — share with students</div>
+      <div class="controller-code" id="controller-id-display">—</div>
+    </div>
+    <div class="flex gap-12" style="flex-wrap:wrap;">
+      <span class="badge" id="status-badge">draft</span>
+      <button class="btn btn-ghost btn-sm" id="copy-controller">Copy Code</button>
+      <button class="btn btn-primary btn-sm" id="toggle-active-btn">Activate Exam</button>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="active" data-tab="questions">Questions</button>
+    <button data-tab="students">Students</button>
+    <button data-tab="results">Results &amp; Analytics</button>
+    <button data-tab="settings">Settings</button>
+  </div>
+
+  <!-- QUESTIONS TAB -->
+  <div class="tabpanel active" id="tab-questions">
+    <div class="toolbar">
+      <input class="input" id="q-search" placeholder="Search questions…">
+      <button class="btn btn-primary" id="add-question-btn">+ Add Question</button>
+      <button class="btn btn-ghost" id="export-questions-btn">Export Question Bank</button>
+      <span class="text-muted" style="margin-left:auto;font-size:13px;" id="q-count"></span>
+    </div>
+    <div id="question-list"></div>
+  </div>
+
+  <!-- STUDENTS TAB -->
+  <div class="tabpanel" id="tab-students">
+    <div class="toolbar">
+      <input class="input" id="s-search" placeholder="Search by name or roll number…">
+      <select class="input" id="s-status-filter" style="max-width:180px;">
+        <option value="">All statuses</option>
+        <option value="not_started">Not Started</option>
+        <option value="in_progress">In Progress</option>
+        <option value="submitted">Submitted</option>
+      </select>
+    </div>
+    <div class="glass-card table-wrap"><table id="students-table">
+      <thead><tr><th>Name</th><th>Roll No.</th><th>Status</th><th>Score</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <!-- RESULTS TAB -->
+  <div class="tabpanel" id="tab-results">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="export-csv-btn">⬇ Export Results (CSV / Excel)</button>
+      <button class="btn btn-ghost" id="print-report-btn">🖨 Print Report (PDF)</button>
+    </div>
+    <div class="glass-card table-wrap"><table id="results-table">
+      <thead><tr><th>Rank</th><th>Name</th><th>Roll No.</th><th>Score</th><th>%</th><th>Status</th><th>Submitted</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="tabpanel" id="tab-settings">
+    <div class="glass-card card-pad" style="max-width:640px;">
+      <form id="settings-form">
+        <div class="field"><label>Exam Title</label><input class="input" id="st-title" required></div>
+        <div class="field"><label>Subject</label><input class="input" id="st-subject"></div>
+        <div class="field"><label>Instructions</label><textarea class="input" id="st-instructions" rows="3"></textarea></div>
+        <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="field"><label>Duration (minutes)</label><input class="input" type="number" id="st-duration" min="1"></div>
+          <div class="field"><label>Passing Marks</label><input class="input" type="number" id="st-passing" min="0"></div>
+        </div>
+        <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="field"><label>Start Date</label><input class="input" type="date" id="st-start-date"></div>
+          <div class="field"><label>End Date</label><input class="input" type="date" id="st-end-date"></div>
+        </div>
+        <div class="flex gap-24 mb-16" style="flex-wrap:wrap;">
+          <label class="checkbox-row"><input type="checkbox" id="st-shuffle-q"> Shuffle questions</label>
+          <label class="checkbox-row"><input type="checkbox" id="st-shuffle-o"> Shuffle options</label>
+          <label class="checkbox-row"><input type="checkbox" id="st-negative"> Negative marking</label>
+          <label class="checkbox-row"><input type="checkbox" id="st-reg-open"> Registration open</label>
+        </div>
+        <button class="btn btn-primary" type="submit">Save Settings</button>
+      </form>
+      <hr style="border-color:var(--glass-border); margin:24px 0;">
+      <button class="btn btn-danger" id="delete-exam-btn">Delete This Exam</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Question Modal -->
+<div class="modal-overlay" id="question-modal" style="display:none;">
+  <div class="modal glass-card glass-card--strong card-pad">
+    <div class="flex justify-between items-center mb-16">
+      <h3 id="qm-title">Add Question</h3>
+      <button class="btn btn-ghost btn-icon" id="qm-close">✕</button>
+    </div>
+    <form id="question-form">
+      <input type="hidden" id="qf-id">
+      <div class="field"><label>Question Text</label><textarea class="input" id="qf-text" rows="2" required></textarea></div>
+      <div class="field"><label>Option A</label><input class="input" id="qf-a" required></div>
+      <div class="field"><label>Option B</label><input class="input" id="qf-b" required></div>
+      <div class="field"><label>Option C</label><input class="input" id="qf-c" required></div>
+      <div class="field"><label>Option D</label><input class="input" id="qf-d" required></div>
+      <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Correct Option</label>
+          <select class="input" id="qf-correct" required>
+            <option value="a">A</option><option value="b">B</option><option value="c">C</option><option value="d">D</option>
+          </select>
+        </div>
+        <div class="field"><label>Marks</label><input class="input" type="number" id="qf-marks" value="1" min="1"></div>
+      </div>
+      <div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label>Category <span class="text-muted">(optional)</span></label><input class="input" id="qf-category"></div>
+        <div class="field"><label>Difficulty</label>
+          <select class="input" id="qf-difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Explanation <span class="text-muted">(shown in results, optional)</span></label><textarea class="input" id="qf-explanation" rows="2"></textarea></div>
+      <div class="field"><label>Question Image <span class="text-muted">(optional)</span></label><input class="input" type="file" id="qf-image" accept="image/*"></div>
+      <button class="btn btn-primary btn-block" type="submit">Save Question</button>
+    </form>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/exam-manage.js"></script>
+</body>
+</html>

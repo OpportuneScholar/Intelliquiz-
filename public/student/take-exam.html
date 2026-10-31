@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam in Progress — IntelliQuiz</title>
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  body { overflow-x: hidden; }
+  .exam-topbar { position: sticky; top:0; z-index:100; background: rgba(11,18,48,.85); backdrop-filter: blur(16px); border-bottom:1px solid var(--glass-border); }
+  [data-theme="light"] .exam-topbar { background: rgba(244,246,253,.9); }
+  .exam-topbar-inner { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; }
+  .timer { font-family: var(--font-mono); font-size: 20px; font-weight:700; padding:8px 18px; border-radius: var(--radius-pill);
+    background: var(--glass-bg); border:1px solid var(--glass-border); }
+  .timer.warn { color: var(--amber-500); border-color: rgba(245,165,36,.4); animation: pulse 1s infinite; }
+  .timer.danger { color: var(--red-500); border-color: rgba(240,80,110,.5); animation: pulse .6s infinite; }
+  @keyframes pulse { 50% { opacity:.55; } }
+
+  .exam-layout { display:grid; grid-template-columns: 1fr 300px; gap:20px; max-width:1200px; margin:20px auto; padding:0 20px 60px; }
+  @media (max-width:900px) { .exam-layout { grid-template-columns: 1fr; } .palette-panel { order:-1; } }
+
+  .q-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .q-progress-text { font-size:13px; color:var(--text-muted); }
+  .question-box { padding:26px; min-height: 320px; }
+  .question-text { font-size:17px; line-height:1.5; margin-bottom:20px; }
+  .option-item {
+    display:flex; align-items:center; gap:12px; padding:14px 16px; margin-bottom:10px;
+    border-radius: var(--radius-sm); border:1px solid var(--glass-border); background: rgba(255,255,255,0.03);
+    cursor:pointer; transition: all .15s ease;
+  }
+  .option-item:hover { border-color: var(--violet-500); }
+  .option-item.selected { border-color: var(--violet-500); background: rgba(139,92,246,.12); box-shadow: 0 0 0 1px var(--violet-500); }
+  .option-key { width:26px; height:26px; border-radius:50%; background:var(--glass-bg); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:none; }
+  .option-item.selected .option-key { background: var(--grad-primary); color:#fff; }
+
+  .nav-row { display:flex; justify-content:space-between; margin-top:24px; gap:10px; flex-wrap:wrap; }
+  .palette-grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-top:14px; }
+  .palette-btn {
+    aspect-ratio:1; border-radius:8px; border:1px solid var(--glass-border); background: var(--glass-bg);
+    color: var(--text-secondary); font-size:12.5px; font-weight:700; position:relative;
+  }
+  .palette-btn.current { outline:2px solid var(--cyan-400); outline-offset:1px; }
+  .palette-btn.answered { background: rgba(31,174,122,.18); color: var(--green-500); border-color: rgba(31,174,122,.35); }
+  .palette-btn.bookmarked::after { content:'★'; position:absolute; top:-6px; right:-4px; font-size:10px; color: var(--amber-500); }
+  .legend { display:flex; flex-direction:column; gap:8px; margin-top:16px; font-size:12px; color:var(--text-muted); }
+  .legend span { display:flex; align-items:center; gap:8px; }
+  .legend .box { width:12px; height:12px; border-radius:3px; }
+
+  .modal-overlay.confirm .modal { max-width: 420px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><img src="/assets/logo.png"><div class="ring"></div></div>
+<div id="toast-region"></div>
+
+<div class="exam-topbar">
+  <div class="exam-topbar-inner">
+    <div class="brand"><img src="/assets/logo.png" style="height:30px;" alt=""><div class="brand-name" style="font-size:16px;">Intelli<span class="accent">Quiz</span></div></div>
+    <div class="flex items-center gap-16">
+      <div class="progress-bar" style="width:140px;" id="header-progress"><div class="progress-bar-fill" id="header-progress-fill" style="width:0%;"></div></div>
+      <div class="timer" id="timer">--:--</div>
+      <button class="btn btn-ghost btn-sm" id="fullscreen-btn">⛶ Fullscreen</button>
+      <button class="btn btn-primary btn-sm" id="submit-btn">Submit Exam</button>
+    </div>
+  </div>
+</div>
+
+<div class="exam-layout">
+  <div>
+    <div class="glass-card question-box" id="question-box">
+      <div class="q-header">
+        <span class="q-progress-text" id="q-progress-text">Question 1 of —</span>
+        <button class="btn btn-ghost btn-sm" id="bookmark-btn">☆ Bookmark</button>
+      </div>
+      <div class="question-text" id="question-text">Loading question…</div>
+      <div id="options-list"></div>
+      <div class="nav-row">
+        <button class="btn btn-ghost" id="prev-btn">← Previous</button>
+        <button class="btn btn-ghost" id="clear-btn">Clear Response</button>
+        <button class="btn btn-primary" id="next-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card card-pad palette-panel">
+    <strong>Question Palette</strong>
+    <div class="palette-grid" id="palette-grid"></div>
+    <div class="legend">
+      <span><span class="box" style="background:rgba(31,174,122,.4);"></span> Answered</span>
+      <span><span class="box" style="background:var(--glass-bg);border:1px solid var(--glass-border);"></span> Not answered</span>
+      <span><span class="box" style="background:var(--glass-bg);border:2px solid var(--cyan-400);"></span> Current</span>
+      <span>★ Bookmarked</span>
+    </div>
+  </div>
+</div>
+
+<!-- Submit confirmation modal -->
+<div class="modal-overlay confirm" id="submit-modal" style="display:none;">
+  <div class="modal glass-card glass-card--strong card-pad">
+    <h3>Submit Examination?</h3>
+    <p class="text-muted mt-16" id="submit-summary"></p>
+    <p style="color:var(--red-500); font-weight:600; font-size:13.5px;" class="mt-16">This action is final. You will not be able to change your answers after submitting.</p>
+    <div class="flex gap-12 mt-24">
+      <button class="btn btn-ghost btn-block" id="cancel-submit">Go Back</button>
+      <button class="btn btn-primary btn-block" id="confirm-submit">Yes, Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Locked / already submitted overlay -->
+<div class="modal-overlay confirm" id="locked-modal" style="display:none;">
+  <div class="modal glass-card glass-card--strong card-pad">
+    <h3>Exam Locked</h3>
+    <p class="text-muted mt-16" id="locked-message">You have already submitted this examination. Reattempt is not allowed.</p>
+    <button class="btn btn-primary btn-block mt-24" onclick="window.location.href='/student/dashboard.html'">Back to Dashboard</button>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/take-exam.js"></script>
+</body>
+</html>

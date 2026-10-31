@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard — IntelliQuiz</title>
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .hero-card { padding: 32px; text-align: center; }
+  .hero-card .icon-circle {
+    width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px;
+    background: var(--grad-primary); display: flex; align-items: center; justify-content: center; font-size: 28px;
+  }
+  .profile-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--glass-border); font-size:14px; }
+  .profile-row:last-child { border-bottom:none; }
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><img src="/assets/logo.png"><div class="ring"></div></div>
+<div id="toast-region"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><img src="/assets/logo.png" alt=""><div><div class="brand-name">Intelli<span class="accent">Quiz</span></div></div></div>
+    <div class="flex items-center gap-12">
+      <span class="text-secondary" id="welcome-text" style="font-size:14px;"></span>
+      <button class="theme-toggle" id="theme-toggle">🌙</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="page-shell" style="max-width:760px;">
+  <div class="grid-2" style="grid-template-columns: 1fr; gap:20px;">
+    <div class="glass-card hero-card" id="status-card">
+      <div class="icon-circle">📝</div>
+      <h2 id="exam-title-h">Loading…</h2>
+      <p class="text-muted" id="exam-subject-p"></p>
+      <div id="status-body" class="mt-24"></div>
+    </div>
+
+    <div class="glass-card card-pad">
+      <div class="section-title">Your Profile</div>
+      <div class="profile-row"><span class="text-muted">Name</span><strong id="p-name"></strong></div>
+      <div class="profile-row"><span class="text-muted">Roll Number</span><strong id="p-roll"></strong></div>
+      <div class="profile-row"><span class="text-muted">Exam</span><strong id="p-exam"></strong></div>
+      <div class="profile-row"><span class="text-muted">Duration</span><strong id="p-duration"></strong></div>
+      <div class="profile-row"><span class="text-muted">Total Marks</span><strong id="p-marks"></strong></div>
+      <div class="profile-row"><span class="text-muted">Passing Marks</span><strong id="p-passing"></strong></div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/student-dashboard.js"></script>
+</body>
+</html>
