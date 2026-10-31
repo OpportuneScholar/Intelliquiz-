@@ -114,6 +114,28 @@ button { font-family: var(--font-body); cursor: pointer; }
 .justify-between { justify-content: space-between; }
 .gap-8 { gap: 8px; } .gap-12 { gap: 12px; } .gap-16 { gap: 16px; } .gap-24 { gap: 24px; }
 
+/* ---------- Standalone authentication pages ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.auth-wrap > .auth-main {
+  width: min(440px, 100%);
+  max-width: 440px;
+  padding: 40px;
+  margin: auto;
+}
+.auth-wrap .field { margin-bottom: 18px; }
+.auth-wrap .form-toggle-link { text-align: center; margin-top: 18px; }
+@media (max-width: 480px) {
+  .auth-wrap { padding: 18px; }
+  .auth-wrap > .auth-main { padding: 26px 22px; }
+}
+
 /* ---------- Glass surfaces ---------- */
 .glass-card {
   background: var(--glass-bg);
