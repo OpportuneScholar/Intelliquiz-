@@ -6,6 +6,7 @@ const { signToken, verifyToken, requireRole } = require('../middleware/auth');
 const router = express.Router();
 const normalizeEmail = value => String(value || '').trim().toLowerCase();
 const normalizeCode = value => String(value || '').trim().toUpperCase();
+const normalizeRoll = value => String(value || '').trim().toUpperCase();
 const publicUser = student => ({id:student.id,name:student.name,rollNumber:student.roll_number,email:student.email,registeredAt:student.registered_at});
 async function enroll(student, code) {
   const exam = await Exam.findOne({controller_id:normalizeCode(code)});
@@ -22,11 +23,11 @@ router.get('/verify-controller/:controllerId', async (req,res,next)=>{try{
  res.json({success:true,exam:{title:exam.title,subject:exam.subject,controllerId:exam.controller_id}});
 }catch(err){next(err);}});
 router.post('/register',async(req,res,next)=>{try{
- const {name,rollNumber,password,controllerId}=req.body,email=normalizeEmail(req.body.email);
+ const {name,password,controllerId}=req.body,email=normalizeEmail(req.body.email),rollNumber=normalizeRoll(req.body.rollNumber);
  if(!name?.trim()||!rollNumber?.trim()||!email||!password)return res.status(400).json({success:false,message:'Name, roll number, email, and password are required.'});
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return res.status(400).json({success:false,message:'Enter a valid email address.'});
  if(String(password).length<8)return res.status(400).json({success:false,message:'Password must be at least 8 characters long.'});
- if(await Student.exists({email}))return res.status(409).json({success:false,message:'An account with this email already exists. Please log in.'});
+ if(await Student.exists({$or:[{email},{roll_number:rollNumber}]}))return res.status(409).json({success:false,message:'An account with this email or roll number already exists. Please log in with your registered email, or contact your teacher if your roll number was entered incorrectly.'});
  let exam=null;
  if(controllerId?.trim()){
   exam=await Exam.findOne({controller_id:normalizeCode(controllerId)});
@@ -37,7 +38,7 @@ router.post('/register',async(req,res,next)=>{try{
  if(exam)await Submission.create({student_id:student._id,exam_id:exam._id,status:'not_started'});
  const token=signToken({id:student.id,role:'student',...(exam?{examId:exam.id}:{}),name:student.name});
  res.status(201).json({success:true,message:'Account created successfully.',token,user:{...publicUser(student),examId:exam?.id||null,examTitle:exam?.title||null}});
-}catch(err){next(err);}});
+}catch(err){if(err.code===11000)return res.status(409).json({success:false,message:'An account with this email or roll number already exists. Please log in instead.'});next(err);}});
 router.post('/login',async(req,res,next)=>{try{
  const email=normalizeEmail(req.body.email),password=req.body.password,controllerId=req.body.controllerId;
  if(!email||!password)return res.status(400).json({success:false,message:'Email and password are required.'});
