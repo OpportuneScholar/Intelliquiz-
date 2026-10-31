@@ -15,8 +15,24 @@ function verifyToken(req, res, next) {
   catch (err) { return res.status(401).json({ success: false, message: 'Session expired or invalid. Please log in again.' }); }
 }
 function requireRole(role) {
-  return (req, res, next) => req.user && req.user.role === role
-    ? next()
-    : res.status(403).json({ success: false, message: 'You do not have permission to access this resource.' });
+  return (req, res, next) => {
+    const actualRole = String(req.user?.role || '').trim().toLowerCase();
+    const requiredRole = String(role || '').trim().toLowerCase();
+    if (actualRole && actualRole === requiredRole) return next();
+
+    // Keep the denial secure for clients while recording enough server-side
+    // context to diagnose role/session mismatches without logging credentials.
+    console.warn('[auth] Role denied', {
+      path: req.originalUrl,
+      requiredRole,
+      actualRole: actualRole || 'missing',
+      userId: req.user?.id || null
+    });
+    return res.status(403).json({
+      success: false,
+      code: 'ROLE_FORBIDDEN',
+      message: 'This account does not have permission to access this resource. Please sign in with the correct account.'
+    });
+  };
 }
 module.exports = { signToken, verifyToken, requireRole };
