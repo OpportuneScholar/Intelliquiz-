@@ -145,7 +145,7 @@
           <div class="field">
             <label>Password</label>
             <div class="input-group">
-              <input class="input" type="password" id="t-reg-password" required minlength="6" placeholder="At least 6 characters">
+              <input class="input" type="password" id="t-reg-password" required minlength="8" placeholder="At least 8 characters">
               <button type="button" class="input-toggle" data-toggle="t-reg-password">SHOW</button>
             </div>
           </div>
@@ -158,15 +158,14 @@
       <div class="panel" id="panel-student-login">
         <form id="form-student-login">
           <div class="field">
-            <label>Exam Controller ID</label>
-            <input class="input mono" type="text" id="s-login-controller" required placeholder="IQ-XXXXXXXX" style="text-transform:uppercase;">
+            <label>Email address</label>
+            <input class="input" type="email" id="s-login-email" required placeholder="you@example.com">
           </div>
-          <div class="row-2">
-            <div class="field">
-              <label>Roll Number</label>
-              <input class="input" type="text" id="s-login-roll" required placeholder="21CS045">
-            </div>
-            <div class="field">
+          <div class="field">
+            <label>Exam Controller ID <span class="text-muted">(optional — open this exam directly)</span></label>
+            <input class="input mono" type="text" id="s-login-controller" placeholder="IQ-XXXXXXXX" style="text-transform:uppercase;">
+          </div>
+          <div class="field">
               <label>Password</label>
               <div class="input-group">
                 <input class="input" type="password" id="s-login-password" required placeholder="••••••••">
@@ -174,7 +173,8 @@
               </div>
             </div>
           </div>
-          <button class="btn btn-primary btn-block mt-8" type="submit">Log In to Exam</button>
+          <button class="btn btn-primary btn-block mt-8" type="submit">Log In</button>
+          <div class="form-toggle-link"><a href="/forgot-password.html">Forgot password?</a></div>
         </form>
         <div class="form-toggle-link">Not registered? <a href="#" data-show="student-register">Register Here</a></div>
       </div>
@@ -183,8 +183,8 @@
       <div class="panel" id="panel-student-register">
         <form id="form-student-register">
           <div class="field">
-            <label>Exam Controller ID <span class="text-muted">(given by your teacher)</span></label>
-            <input class="input mono" type="text" id="s-reg-controller" required placeholder="IQ-XXXXXXXX" style="text-transform:uppercase;">
+            <label>Exam Controller ID <span class="text-muted">(optional — you can join exams later)</span></label>
+            <input class="input mono" type="text" id="s-reg-controller" placeholder="IQ-XXXXXXXX" style="text-transform:uppercase;">
           </div>
           <div class="exam-preview" id="exam-preview"></div>
           <div class="field">
@@ -197,8 +197,8 @@
               <input class="input" type="text" id="s-reg-roll" required placeholder="21CS045">
             </div>
             <div class="field">
-              <label>Email <span class="text-muted">(optional)</span></label>
-              <input class="input" type="email" id="s-reg-email" placeholder="you@example.com">
+              <label>Email address</label>
+              <input class="input" type="email" id="s-reg-email" required placeholder="you@example.com">
             </div>
           </div>
           <div class="field">
@@ -208,7 +208,7 @@
               <button type="button" class="input-toggle" data-toggle="s-reg-password">SHOW</button>
             </div>
           </div>
-          <button class="btn btn-primary btn-block" type="submit">Register for Exam</button>
+          <button class="btn btn-primary btn-block" type="submit">Create Student Account</button>
         </form>
         <div class="form-toggle-link">Already registered? <a href="#" data-show="student-login">Log In</a></div>
       </div>
