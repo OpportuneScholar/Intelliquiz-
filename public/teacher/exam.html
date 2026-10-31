@@ -68,7 +68,7 @@
     <div class="toolbar">
       <input class="input" id="q-search" placeholder="Search questions…">
       <button class="btn btn-primary" id="add-question-btn">+ Add Question</button>
-      <button class="btn btn-ghost" id="export-questions-btn">Export Question Bank</button>
+      <button class="btn btn-ghost" id="export-questions-btn">Export Exam Questions</button><button class="btn btn-ghost" id="import-bank-btn">Import Unit Questions</button><button class="btn btn-ghost" id="select-bank-btn">Add Saved Questions</button>
       <span class="text-muted" style="margin-left:auto;font-size:13px;" id="q-count"></span>
     </div>
     <div id="question-list"></div>
@@ -167,7 +167,10 @@
   </div>
 </div>
 
-<script src="/js/api.js"></script>
+
+<div class="modal-overlay" id="bank-modal" style="display:none;"><div class="modal glass-card glass-card--strong card-pad"><div class="flex justify-between items-center mb-16"><h3>Import Questions into Unit Bank</h3><button class="btn btn-ghost btn-icon" id="bank-close">✕</button></div><p class="text-muted">Upload a JSON file containing an array of questions. Required fields: questionText, optionA-D, correctOption (a/b/c/d). Questions are saved under the selected subject and unit for reuse.</p><div class="field"><label>Subject</label><input class="input" id="bank-subject" required></div><div class="field"><label>Unit name / number</label><input class="input" id="bank-unit" placeholder="Unit 1 — Introduction" required></div><div class="field"><label>JSON file</label><input class="input" type="file" id="bank-file" accept=".json,application/json" required></div><button class="btn btn-primary btn-block" id="bank-import-submit">Import and Save</button><p id="bank-import-message" class="text-muted"></p></div></div>
+<div class="modal-overlay" id="select-bank-modal" style="display:none;"><div class="modal glass-card glass-card--strong card-pad"><div class="flex justify-between items-center mb-16"><h3>Add from Saved Unit Questions</h3><button class="btn btn-ghost btn-icon" id="select-bank-close">✕</button></div><div class="field"><label>Unit</label><select class="input" id="bank-unit-filter"><option value="">All saved units</option></select></div><div id="bank-question-list"></div><button class="btn btn-primary btn-block mt-16" id="bank-add-selected">Add Selected to Exam</button></div></div>
+\n<script src="/js/api.js"></script>
 <script src="/js/exam-manage.js"></script>
 </body>
 </html>

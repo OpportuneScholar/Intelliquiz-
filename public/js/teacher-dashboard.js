@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ---------- Create exam modal ----------
   const modal = document.getElementById('create-modal');
   document.getElementById('create-exam-btn').addEventListener('click', () => modal.style.display = 'flex');
+  loadQuestionBankUnits();
   document.getElementById('close-modal').addEventListener('click', () => modal.style.display = 'none');
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
 
@@ -45,7 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         shuffleQuestions: document.getElementById('ce-shuffle-q').checked,
         shuffleOptions: document.getElementById('ce-shuffle-o').checked,
         negativeMarking: document.getElementById('ce-negative').checked,
-        negativeMarkValue: document.getElementById('ce-negative-value').value
+        negativeMarkValue: document.getElementById('ce-negative-value').value,
+        selectedUnits: [...document.getElementById('ce-units').selectedOptions].map(o => o.value)
       };
       const data = await IQ.api('/exams', { method: 'POST', body });
       IQ.toast(`Exam created! Controller ID: ${data.exam.controller_id}`, 'success', 6000);
@@ -121,4 +123,9 @@ async function loadExams() {
   } catch (err) {
     grid.innerHTML = `<div class="glass-card empty-state" style="grid-column:1/-1;">Could not load exams: ${err.message}</div>`;
   }
+}
+
+async function loadQuestionBankUnits(){
+ const select=document.getElementById('ce-units');if(!select)return;
+ try{const r=await IQ.api('/question-bank/units');select.innerHTML=(r.units||[]).map(u=>'<option value="'+IQ.escapeHtml(u.unit)+'">'+IQ.escapeHtml((u.subject?u.subject+' — ':'')+u.unit)+' ('+u.count+')</option>').join('');}catch(e){select.innerHTML='';console.warn('Could not load saved units',e);}
 }

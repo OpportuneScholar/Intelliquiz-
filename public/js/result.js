@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('logout-btn').addEventListener('click', IQ.logout);
 
   try {
-    const { exam, student, result, breakdown } = await IQ.api('/student-exam/result');
+    const { exam, student, result, breakdown } = await IQ.api('/student-exam/result'+(new URLSearchParams(location.search).get('examId')?'?examId='+encodeURIComponent(new URLSearchParams(location.search).get('examId')):''));
 
     document.getElementById('score-hero').innerHTML = `
       <div class="score-ring" style="--pct:${result.percentage}">
