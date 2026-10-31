@@ -139,7 +139,7 @@ router.put('/:id', async (req, res, next) => {
     const exam = await getOwnedExam(req.params.id, req.user.id);
     if (!exam) return res.status(404).json({ success: false, message: 'Exam not found.' });
     const map = { durationMinutes: 'duration_minutes', totalMarks: 'total_marks', passingMarks: 'passing_marks', startDate: 'start_date', endDate: 'end_date', startTime: 'start_time', endTime: 'end_time', questionsPerAttempt: 'questions_per_attempt', maxAttempts: 'max_attempts', shuffleQuestions: 'shuffle_questions', shuffleOptions: 'shuffle_options', negativeMarking: 'negative_marking', negativeMarkValue: 'negative_mark_value', registrationOpen: 'registration_open' };
-    const allowed = ['title', 'subject', 'instructions', 'duration_minutes', 'total_marks', 'passing_marks', 'start_date', 'end_date', 'start_time', 'end_time', 'questions_per_attempt', 'shuffle_questions', 'shuffle_options', 'negative_marking', 'negative_mark_value', 'registration_open', 'status'];
+    const allowed = ['title', 'subject', 'instructions', 'duration_minutes', 'total_marks', 'passing_marks', 'start_date', 'end_date', 'start_time', 'end_time', 'questions_per_attempt', 'max_attempts', 'shuffle_questions', 'shuffle_options', 'negative_marking', 'negative_mark_value', 'registration_open', 'status'];
     let changed = false;
     for (const [key, value] of Object.entries(req.body || {})) {
       const field = map[key] || key;
