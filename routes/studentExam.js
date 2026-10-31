@@ -11,6 +11,7 @@ router.post('/start',async(req,res,next)=>{try{
  const {student,exam}=await context(req.user.id);if(!student||!exam)return res.status(404).json({success:false,message:'Student or examination record not found.'});
  let submission=await Submission.findOne({student_id:student._id,exam_id:exam._id});
  if(submission?.status==='submitted')return res.status(403).json({success:false,locked:true,message:'You have already submitted this examination. Reattempt is not allowed.'});
+ if(exam.status!=='active'&&submission?.status!=='in_progress')return res.status(403).json({success:false,message:'This examination is not active yet. Please wait for your teacher to activate it.'});
  let questionOrder=submission?.status==='in_progress'&&submission.question_order?.length?submission.question_order.map(String):null;
  if(!questionOrder){
   let all=(await Question.find({exam_id:exam._id}).select('_id').lean()).map(q=>String(q._id));
@@ -28,6 +29,9 @@ router.post('/save',async(req,res,next)=>{try{
  const {questionId,selectedOption,isBookmarked}=req.body;const {student,submission}=await context(req.user.id);
  if(!student||!submission||submission.status!=='in_progress')return res.status(403).json({success:false,message:'No active exam attempt found.'});
  if(!validId(questionId))return res.status(400).json({success:false,message:'Invalid question for this exam.'});
+ if(selectedOption!==undefined&&selectedOption!==''&&!['a','b','c','d'].includes(String(selectedOption).toLowerCase()))return res.status(400).json({success:false,message:'Selected option must be a, b, c, or d.'});
+ if(selectedOption===undefined&&typeof isBookmarked!=='boolean')return res.status(400).json({success:false,message:'No answer update was provided.'});
+ if(!(submission.question_order||[]).map(String).includes(String(questionId)))return res.status(400).json({success:false,message:'This question is not part of your current attempt.'});
  const question=await Question.findOne({_id:questionId,exam_id:student.exam_id});if(!question)return res.status(400).json({success:false,message:'Invalid question for this exam.'});
  const update={};if(selectedOption!==undefined)update.selected_option=selectedOption;if(typeof isBookmarked==='boolean')update.is_bookmarked=isBookmarked;
  await Answer.findOneAndUpdate({submission_id:submission._id,question_id:question._id},{$set:update,$setOnInsert:{submission_id:submission._id,question_id:question._id}},{upsert:true,new:true,runValidators:true});
