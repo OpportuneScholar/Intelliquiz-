@@ -8,7 +8,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const os = require('os');
-const { connectDB } = require('./database/db');
+const { connectDB, mongoose } = require('./database/db');
 
 const teacherAuthRoutes = require('./routes/teacherAuth');
 const studentAuthRoutes = require('./routes/studentAuth');
@@ -21,7 +21,8 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(value => value.trim()).filter(Boolean);
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : false }));
 app.use(compression());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '5mb' }));
@@ -39,7 +40,15 @@ app.use('/api/exams', examRoutes);
 app.use('/api', questionRoutes);
 app.use('/api/dashboard', teacherDashboardRoutes);
 app.use('/api/student-exam', studentExamRoutes);
-app.get('/api/health', (req, res) => res.json({ success: true, message: 'IntelliQuiz server is running.', database: 'MongoDB Atlas', time: new Date().toISOString() }));
+app.get('/api/health', (req, res) => {
+  const databaseReady = mongoose.connection.readyState === 1;
+  res.status(databaseReady ? 200 : 503).json({
+    success: databaseReady,
+    message: databaseReady ? 'IntelliQuiz server is running.' : 'Database connection is not ready.',
+    database: databaseReady ? 'connected' : 'disconnected',
+    time: new Date().toISOString()
+  });
+});
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.use(notFound);
 app.use(errorHandler);
