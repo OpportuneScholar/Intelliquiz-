@@ -4,7 +4,7 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const { generateControllerId } = require('../utils/generateId');
 const router = express.Router();
 router.use(verifyToken, requireRole('teacher'));
-const validId = id => /^[a-f\\d]{24}$/i.test(String(id));
+const validId = id => /^[a-f\d]{24}$/i.test(String(id));
 async function getOwnedExam(id, teacherId) { if (!validId(id)) return null; return Exam.findOne({ _id:id, teacher_id:teacherId }); }
 
 router.get('/', async (req,res,next) => {
