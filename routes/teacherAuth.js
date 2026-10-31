@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { Teacher } = require('../database/db');
 const { signToken } = require('../middleware/auth');
 const router = express.Router();
-const isValidEmail = email => typeof email === 'string' && email.includes('@') && email.split('@')[1]?.includes('.') && !/\\s/.test(email);
+const isValidEmail = email => typeof email === 'string' && email.includes('@') && email.split('@')[1]?.includes('.') && !email.split('').some(ch => ch.charCodeAt(0) <= 32);
 
 router.post('/register', async (req, res, next) => {
   try {
