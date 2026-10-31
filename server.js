@@ -31,6 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50, message: { success: false, message: 'Too many attempts. Please try again in a few minutes.' } });
 app.use('/api/teacher/login', authLimiter);
 app.use('/api/student/login', authLimiter);
+app.use('/api/student/register', authLimiter);
+app.use('/api/student/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { success: false, message: 'Too many password reset requests. Try again later.' } }));
+app.use('/api/student/reset-password', authLimiter);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
