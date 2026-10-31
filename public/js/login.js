@@ -112,10 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
         password: document.getElementById('s-reg-password').value
       };
       const data = await IQ.api('/student/register', { method: 'POST', body, auth: false });
+      IQ.setSession(data.token, data.user, 'student');
       IQ.toast(data.message, 'success');
-      showPanelExternal('student-login');
-      document.getElementById('s-login-controller').value = body.controllerId;
-      document.getElementById('s-login-roll').value = body.rollNumber;
+      setTimeout(() => (window.location.href = '/student/dashboard.html'), 500);
     } catch (err) {
       IQ.toast(err.message, 'error');
     } finally {
@@ -137,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true; btn.textContent = 'Logging in…';
     try {
       const body = {
+        email: document.getElementById('s-login-email').value.trim(),
         controllerId: document.getElementById('s-login-controller').value.trim().toUpperCase(),
-        rollNumber: document.getElementById('s-login-roll').value.trim(),
         password: document.getElementById('s-login-password').value
       };
       const data = await IQ.api('/student/login', { method: 'POST', body, auth: false });
@@ -148,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       IQ.toast(err.message, 'error');
     } finally {
-      btn.disabled = false; btn.textContent = 'Log In to Exam';
+      btn.disabled = false; btn.textContent = 'Log In';
     }
   });
 });
