@@ -187,7 +187,7 @@ async function doSubmit(isAutoSubmit = false) {
     setTimeout(() => (window.location.href = '/student/result.html?examId='+encodeURIComponent(examData.examId)), 900);
   } catch (err) {
     if (err.data && err.data.locked) {
-      window.location.href = '/student/result.html';
+      window.location.href = '/student/result.html?examId='+encodeURIComponent(examData.examId);
     } else {
       IQ.toast(err.message, 'error');
       hasSubmitted = false;
