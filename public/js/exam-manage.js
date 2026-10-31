@@ -259,7 +259,8 @@ async function addBankQuestionsToExam(){
  const questionIds=[...document.querySelectorAll('.bank-q-check:checked')].map(x=>x.value);if(!questionIds.length){IQ.toast('Select at least one question.','error');return;}
  try{const r=await IQ.api('/exams/'+examId+'/questions/from-bank',{method:'POST',body:{questionIds}});IQ.toast(r.message,'success');document.getElementById('select-bank-modal').style.display='none';await loadQuestions();await loadExam();}catch(e){IQ.toast(e.message,'error');}
 }
-\n// ---------------- Students ----------------
+
+// ---------------- Students ----------------
 async function loadStudents() {
   const tbody = document.querySelector('#students-table tbody');
   const search = document.getElementById('s-search').value;
