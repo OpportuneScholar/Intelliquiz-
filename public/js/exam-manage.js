@@ -278,7 +278,6 @@ async function loadStudents() {
         <td><span class="badge badge-${s.status || 'not_started'}">${(s.status || 'not_started').replace('_',' ')}</span></td>
         <td>${s.score != null && s.status === 'submitted' ? `${s.score}/${s.total_marks}` : '—'}</td>
         <td>
-          <button class="btn btn-ghost btn-sm" onclick="resetAttempt('${s.id}', '${s.submissionId}', '${IQ.escapeHtml(s.name)}')">Reset</button>
           <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}', '${s.submissionId}', '${IQ.escapeHtml(s.name)}')">Remove</button>
         </td>
       </tr>
@@ -286,15 +285,6 @@ async function loadStudents() {
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="empty-state">${err.message}</td></tr>`;
   }
-}
-
-async function resetAttempt(id, submissionId, name) {
-  if (!confirm(`Reset ${name}'s attempt? They will be able to retake the exam.`)) return;
-  try {
-    const data = await IQ.api(`/dashboard/students/${id}/reset-attempt`, { method: 'POST', body: { submissionId } });
-    IQ.toast(data.message, 'success');
-    loadStudents();
-  } catch (err) { IQ.toast(err.message, 'error'); }
 }
 
 async function deleteStudent(id, submissionId, name) {
