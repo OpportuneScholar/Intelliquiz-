@@ -10,7 +10,7 @@ async function getOwnedExam(id, teacherId) { if (!validId(id)) return null; retu
 router.get('/', async (req,res,next) => {
  try {
   const exams=await Exam.find({teacher_id:req.user.id}).sort({created_at:-1}).lean();
-  const enriched=await Promise.all(exams.map(async e=>{const [total_students,total_questions,submitted_count,in_progress_count]=await Promise.all([Student.countDocuments({exam_id:e._id}),Question.countDocuments({exam_id:e._id}),Submission.countDocuments({exam_id:e._id,status:'submitted'}),Submission.countDocuments({exam_id:e._id,status:'in_progress'})]);return {...e,id:String(e._id),total_students,total_questions,submitted_count,in_progress_count};}));
+  const enriched=await Promise.all(exams.map(async e=>{const [total_students,total_questions,submitted_count,in_progress_count]=await Promise.all([Submission.distinct('student_id',{exam_id:e._id}).then(x=>x.length),Question.countDocuments({exam_id:e._id}),Submission.countDocuments({exam_id:e._id,status:'submitted'}),Submission.countDocuments({exam_id:e._id,status:'in_progress'})]);return {...e,id:String(e._id),total_students,total_questions,submitted_count,in_progress_count};}));
   res.json({success:true,exams:enriched});
  } catch(err){next(err);}
 });
@@ -20,7 +20,7 @@ router.post('/',async(req,res,next)=>{
   if(!title||!durationMinutes||Number(durationMinutes)<=0)return res.status(400).json({success:false,message:'Exam title and duration are required.'});
   let controllerId; for(let i=0;i<5;i++){controllerId=generateControllerId();if(!await Exam.exists({controller_id:controllerId}))break;}
   const exam=await Exam.create({teacher_id:req.user.id,controller_id,title:title.trim(),subject,instructions,duration_minutes:Number(durationMinutes),total_marks:Number(totalMarks)||0,passing_marks:Number(passingMarks)||0,start_date:startDate||undefined,end_date:endDate||undefined,start_time:startTime||undefined,end_time:endTime||undefined,questions_per_attempt:questionsPerAttempt?Number(questionsPerAttempt):undefined,shuffle_questions:shuffleQuestions!==false,shuffle_options:shuffleOptions!==false,negative_marking:!!negativeMarking,negative_mark_value:Number(negativeMarkValue)||0,status:'draft'});
-  let preloaded=0;if(Array.isArray(selectedUnits)&&selectedUnits.length){const bank=await UnitQuestion.find({teacher_id:req.user.id,unit:{$in:selectedUnits}}).lean();if(bank.length){await Question.insertMany(bank.map(q=>({exam_id:exam._id,question_text:q.question_text,option_a:q.option_a,option_b:q.option_b,option_c:q.option_c,option_d:q.option_d,correct_option:q.correct_option,explanation:q.explanation,difficulty:q.difficulty,marks:q.marks,category:q.unit})));preloaded=bank.length;const sum=await Question.aggregate([{$match:{exam_id:exam._id}},{$group:{_id:null,total:{$sum:'$marks'}}}]);exam.total_marks=sum[0]?.total||0;await exam.save();}}
+  let preloaded=0;if(Array.isArray(selectedUnits)&&selectedUnits.length){const bank=await UnitQuestion.find({teacher_id:req.user.id,subject:subject,unit:{$in:selectedUnits}}).lean();if(bank.length){await Question.insertMany(bank.map(q=>({exam_id:exam._id,question_text:q.question_text,option_a:q.option_a,option_b:q.option_b,option_c:q.option_c,option_d:q.option_d,correct_option:q.correct_option,explanation:q.explanation,difficulty:q.difficulty,marks:q.marks,category:q.unit})));preloaded=bank.length;const sum=await Question.aggregate([{$match:{exam_id:exam._id}},{$group:{_id:null,total:{$sum:'$marks'}}}]);exam.total_marks=sum[0]?.total||0;await exam.save();}}
   res.status(201).json({success:true,message:'Exam created successfully. '+preloaded+' saved unit questions added.',exam:exam.toObject(),preloadedQuestions:preloaded});
  }catch(err){next(err);}
 });
@@ -38,7 +38,7 @@ router.put('/:id',async(req,res,next)=>{
 router.delete('/:id',async(req,res,next)=>{
  try{const exam=await getOwnedExam(req.params.id,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
   const submissions=await Submission.find({exam_id:exam._id}).select('_id');const ids=submissions.map(s=>s._id);
-  const {Answer}=require('../database/db');await Promise.all([Question.deleteMany({exam_id:exam._id}),Student.deleteMany({exam_id:exam._id}),Submission.deleteMany({exam_id:exam._id}),Answer.deleteMany({submission_id:{$in:ids}}),exam.deleteOne()]);
+  const {Answer}=require('../database/db');await Promise.all([Question.deleteMany({exam_id:exam._id}),Submission.deleteMany({exam_id:exam._id}),Answer.deleteMany({submission_id:{$in:ids}}),exam.deleteOne()]);
   res.json({success:true,message:'Exam deleted successfully.'});
  }catch(err){next(err);}
 });
