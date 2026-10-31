@@ -17,7 +17,7 @@ router.get('/overview',async(req,res,next)=>{try{
 }catch(err){next(err);}});
 router.get('/exams/:examId/students',async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
- const filter={exam_id:exam._id};if(req.query.search){const escaped=String(req.query.search).replace(/[.*+?^${}()|[\\]\\]/g,'\\$&');filter.$or=[{name:{$regex:escaped,$options:'i'}},{roll_number:{$regex:escaped,$options:'i'}}];}
+ const filter={exam_id:exam._id};if(req.query.search){const escaped=String(req.query.search).split('').map(ch => '.*+?^${}()|[]\\\\'.includes(ch) ? '\\\\' + ch : ch).join('')
  const students=await Student.find(filter).sort({name:1}).lean();const subs=await Submission.find({exam_id:exam._id}).lean();const byStudent=Object.fromEntries(subs.map(s=>[String(s.student_id),s]));
  let rows=students.map(s=>{const sub=byStudent[String(s._id)]||{};return{id:String(s._id),name:s.name,roll_number:s.roll_number,email:s.email,registered_at:s.registered_at,status:sub.status||'not_started',score:sub.score??0,total_marks:sub.total_marks??0,submitted_at:sub.submitted_at,time_taken_seconds:sub.time_taken_seconds};});
  if(req.query.status)rows=rows.filter(s=>s.status===req.query.status);res.json({success:true,students:rows});
