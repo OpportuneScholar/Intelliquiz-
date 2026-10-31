@@ -105,6 +105,8 @@ function renderExamHeader() {
 function fillSettingsForm() {
   const e = currentExam;
   document.getElementById('st-title').value = e.title || '';
+  document.getElementById('st-attempt-policy').value = Number(e.max_attempts || 1) > 1 ? 'multiple' : 'single';
+  document.getElementById('st-max-attempts').value = e.max_attempts || 2;
   document.getElementById('st-subject').value = e.subject || '';
   document.getElementById('st-instructions').value = e.instructions || '';
   document.getElementById('st-duration').value = e.duration_minutes || '';
@@ -131,7 +133,8 @@ async function saveSettings(e) {
       shuffleQuestions: document.getElementById('st-shuffle-q').checked,
       shuffleOptions: document.getElementById('st-shuffle-o').checked,
       negativeMarking: document.getElementById('st-negative').checked,
-      registrationOpen: document.getElementById('st-reg-open').checked
+      registrationOpen: document.getElementById('st-reg-open').checked,
+      maxAttempts: document.getElementById('st-attempt-policy').value === 'multiple' ? document.getElementById('st-max-attempts').value : 1
     };
     const data = await IQ.api(`/exams/${examId}`, { method: 'PUT', body });
     currentExam = data.exam;
