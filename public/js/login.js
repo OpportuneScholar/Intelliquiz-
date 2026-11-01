@@ -4,6 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // If already logged in, redirect straight to the right dashboard.
   const role = IQ.getRole();
   const params = new URLSearchParams(window.location.search);
+  const sharedControllerId = (params.get('controllerId') || '').trim().toUpperCase();
+  if (sharedControllerId) {
+    const studentTab = document.querySelector('.tab-btn[data-role="student"]');
+    if (studentTab) studentTab.click();
+    const loginCode = document.getElementById('s-login-controller');
+    const registerCode = document.getElementById('s-reg-controller');
+    if (loginCode) loginCode.value = sharedControllerId;
+    if (registerCode) registerCode.value = sharedControllerId;
+  }
   let mismatchRole = params.get('session') === 'role-mismatch' ? params.get('role') : null;
   try { mismatchRole = mismatchRole || sessionStorage.getItem('iq_role_mismatch'); sessionStorage.removeItem('iq_role_mismatch'); } catch (_) {}
   if (!mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
