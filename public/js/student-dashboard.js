@@ -7,10 +7,17 @@ document.addEventListener('DOMContentLoaded',async function(){
  function section(name){document.querySelectorAll('.student-section').forEach(x=>x.classList.toggle('active',x.id===name));document.querySelectorAll('[data-section]').forEach(x=>x.classList.toggle('active',x.dataset.section===name));}
  document.querySelectorAll('[data-section]').forEach(x=>x.addEventListener('click',()=>section(x.dataset.section)));
  $('retry-btn').addEventListener('click',load);
- let selectedExamId=new URLSearchParams(location.search).get('examId')||user.examId||null;
+ const pageParams=new URLSearchParams(location.search);
+ let selectedExamId=pageParams.get('examId')||user.examId||null;
+ const pendingControllerId=(pageParams.get('controllerId')||'').trim().toUpperCase();
  const set=(id,v)=>{if($(id))$(id).textContent=v==null||v===''?'—':v;};
  async function load(){ $('load-error').hidden=true;$('dashboard-content').hidden=false;
   try{
+   if(pendingControllerId){
+    const joined=await IQ.api('/student/join',{method:'POST',body:{controllerId:pendingControllerId}});
+    selectedExamId=joined.exam.id;
+    history.replaceState({},'','?examId='+encodeURIComponent(selectedExamId));
+   }
    const list=await IQ.api('/student/exams'); const exams=list.exams||[]; if(!selectedExamId&&exams.length) selectedExamId=exams[0].id; const holder=$('joined-exams'); holder.innerHTML=exams.length?exams.map(x=>'<button class="btn btn-ghost btn-sm" data-exam-id="'+IQ.escapeHtml(x.id)+'" style="margin:4px">'+IQ.escapeHtml(x.title)+' · '+IQ.escapeHtml(x.controllerId)+'</button>').join(''):'<p class="text-muted">No exams joined yet.</p>'; holder.querySelectorAll('[data-exam-id]').forEach(btn=>btn.addEventListener('click',()=>{selectedExamId=btn.dataset.examId;history.replaceState({},'','?examId='+encodeURIComponent(selectedExamId));load();})); if(!selectedExamId){
    set('welcome-name',user.name);set('welcome-subtitle','Join an examination using the Controller ID provided by your teacher.');
    set('p-name',user.name);set('p-roll',user.rollNumber);set('p-email',user.email);
