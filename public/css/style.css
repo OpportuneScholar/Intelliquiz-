@@ -371,3 +371,40 @@ tr:last-child td { border-bottom: none; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .stat-card .stat-value { font-size: 24px; }
 }
+
+
+/* IntelliQuiz dashboard refresh — clearer hierarchy, navigation and mobile usability */
+.page-shell{max-width:1380px;padding:30px clamp(16px,3vw,36px) 64px}
+.teacher-nav{position:sticky;top:68px;z-index:90;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px clamp(16px,3vw,36px);max-width:1380px;margin:0 auto;background:color-mix(in srgb,var(--navy-950) 88%,transparent);backdrop-filter:blur(18px);border-bottom:1px solid var(--glass-border)}
+.teacher-nav a{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--text-secondary);font-size:13px;font-weight:650;transition:background .18s ease,color .18s ease,border-color .18s ease}
+.teacher-nav a:hover,.teacher-nav a:focus-visible{background:var(--grad-primary-soft);border-color:var(--glass-border);color:var(--text-primary)}
+.stat-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.stat-card{border-radius:20px;padding:20px;min-height:118px}
+.exam-grid{gap:16px}
+.exam-card{border-radius:20px;padding:22px;min-height:176px}
+.glass-card{border-radius:20px}
+.section-title{font-size:18px}
+.modal{max-width:680px;border-radius:24px}
+.modal-overlay{overflow-y:auto;align-items:flex-start}
+.modal-overlay>.modal{margin:auto}
+.input,select.input,textarea.input{min-height:46px}
+textarea.input{min-height:96px}
+.table-wrap{border-radius:18px}
+table{min-width:720px}
+@media(max-width:700px){
+ .teacher-nav{top:60px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:10px 14px}
+ .teacher-nav a{justify-content:center;padding:11px 7px;font-size:12px}
+ .page-shell{padding:20px 14px 44px}
+ .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .stat-card{padding:15px;min-height:105px}
+ .stat-card .stat-value{font-size:23px}
+ .exam-grid{grid-template-columns:1fr}
+ .modal-overlay{padding:10px}
+ .modal.card-pad{padding:20px 16px}
+ .topbar-inner{padding:12px 14px}
+ .brand-name{font-size:19px}
+}
+@media(max-width:420px){
+ .teacher-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .stat-card .stat-label{font-size:10px}
+}
