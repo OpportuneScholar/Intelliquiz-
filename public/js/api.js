@@ -45,15 +45,9 @@ const IQ = (() => {
       setTimeout(() => (window.location.href = '/'), 1200);
     }
 
-    // A stale/mismatched token can survive when accounts are switched in the
-    // same browser. Never weaken the server role check; clear the bad session
-    // and reopen the matching login panel instead.
-    if (res.status === 403 && auth && data.code === 'ROLE_FORBIDDEN') {
-      clearSession();
-      const expectedRole = /\/student(?:\/|[-?]|$)/i.test(path) ? 'student' : 'teacher';
-      try { sessionStorage.setItem('iq_role_mismatch', expectedRole); } catch (_) {}
-      window.location.replace(`/?session=role-mismatch&role=${expectedRole}`);
-    }
+    // A 403 is an authorization denial, not proof that a token is expired.
+    // Keep the session intact so users can correct the account/role without being
+    // forcibly logged out. Only 401 responses clear an invalid or expired session.
 
     if (!res.ok || data.success === false) {
       const err = new Error(data.message || 'Something went wrong.');
