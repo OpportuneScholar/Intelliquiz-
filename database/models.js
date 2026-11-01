@@ -8,6 +8,9 @@ const unitQuestionSchema = new mongoose.Schema({teacher_id:{type:mongoose.Schema
 unitQuestionSchema.index({teacher_id:1,subject:1,unit:1});
 const submissionSchema = new mongoose.Schema({student_id:{type:mongoose.Schema.Types.ObjectId,ref:'Student',required:true},exam_id:{type:mongoose.Schema.Types.ObjectId,ref:'Exam',required:true,index:true},status:{type:String,enum:['not_started','in_progress','submitted'],default:'not_started'},question_order:[String],started_at:Date,submitted_at:Date,score:{type:Number,default:0},total_marks:{type:Number,default:0},correct_count:{type:Number,default:0},incorrect_count:{type:Number,default:0},skipped_count:{type:Number,default:0},time_taken_seconds:Number,attempt_number:{type:Number,default:1}},opts);
 submissionSchema.index({student_id:1,exam_id:1,created_at:-1});
+// A student can have only one record for each numbered attempt in an exam.
+// This unique index is the final guard against simultaneous duplicate starts/enrollments.
+submissionSchema.index({student_id:1,exam_id:1,attempt_number:1},{unique:true,name:'uniq_student_exam_attempt'});
 const answerSchema = new mongoose.Schema({submission_id:{type:mongoose.Schema.Types.ObjectId,ref:'Submission',required:true,index:true},question_id:{type:mongoose.Schema.Types.ObjectId,ref:'Question',required:true},selected_option:String,is_correct:Boolean,is_bookmarked:{type:Boolean,default:false}},opts);
 answerSchema.index({submission_id:1,question_id:1},{unique:true});
 const UnitQuestion=mongoose.model('UnitQuestion',unitQuestionSchema);
