@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let mismatchRole = params.get('session') === 'role-mismatch' ? params.get('role') : null;
   try { mismatchRole = mismatchRole || sessionStorage.getItem('iq_role_mismatch'); sessionStorage.removeItem('iq_role_mismatch'); } catch (_) {}
   if (!mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
-  if (!mismatchRole && role === 'student') return (window.location.href = '/student/dashboard.html');
+  if (!mismatchRole && role === 'student') return (window.location.href = sharedControllerId ? '/student/dashboard.html?controllerId=' + encodeURIComponent(sharedControllerId) : '/student/dashboard.html');
 
   // ---------- Tabs ----------
   const tabBtns = document.querySelectorAll('.tab-btn');
