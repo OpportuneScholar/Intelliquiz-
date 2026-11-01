@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const sharedControllerId = (params.get('controllerId') || '').trim().toUpperCase();
   if (sharedControllerId) {
-    const studentTab = document.querySelector('.tab-btn[data-role="student"]');
-    if (studentTab) studentTab.click();
     const loginCode = document.getElementById('s-login-controller');
     const registerCode = document.getElementById('s-reg-controller');
     if (loginCode) loginCode.value = sharedControllerId;
@@ -35,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelRole = name.split('-')[0];
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.role === panelRole));
   }
+
+  if (sharedControllerId && !mismatchRole) showPanel('student-login');
 
   if (mismatchRole === 'student' || mismatchRole === 'teacher') {
     showPanel(`${mismatchRole}-login`);
