@@ -45,6 +45,16 @@ const IQ = (() => {
       setTimeout(() => (window.location.href = '/'), 1200);
     }
 
+    // A stale/mismatched token can survive when accounts are switched in the
+    // same browser. Never weaken the server role check; clear the bad session
+    // and reopen the matching login panel instead.
+    if (res.status === 403 && auth && data.code === 'ROLE_FORBIDDEN') {
+      clearSession();
+      const expectedRole = /\/student(?:\/|[-?]|$)/i.test(path) ? 'student' : 'teacher';
+      try { sessionStorage.setItem('iq_role_mismatch', expectedRole); } catch (_) {}
+      window.location.replace(`/?session=role-mismatch&role=${expectedRole}`);
+    }
+
     if (!res.ok || data.success === false) {
       const err = new Error(data.message || 'Something went wrong.');
       err.data = data;

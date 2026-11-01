@@ -3,8 +3,11 @@
 document.addEventListener('DOMContentLoaded', () => {
   // If already logged in, redirect straight to the right dashboard.
   const role = IQ.getRole();
-  if (role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
-  if (role === 'student') return (window.location.href = '/student/dashboard.html');
+  const params = new URLSearchParams(window.location.search);
+  let mismatchRole = params.get('session') === 'role-mismatch' ? params.get('role') : null;
+  try { mismatchRole = mismatchRole || sessionStorage.getItem('iq_role_mismatch'); sessionStorage.removeItem('iq_role_mismatch'); } catch (_) {}
+  if (!mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
+  if (!mismatchRole && role === 'student') return (window.location.href = '/student/dashboard.html');
 
   // ---------- Tabs ----------
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -20,8 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     const el = document.getElementById(`panel-${name}`);
     if (el) el.classList.add('active');
-    const role = name.split('-')[0];
-    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.role === role));
+    const panelRole = name.split('-')[0];
+    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.role === panelRole));
+  }
+
+  if (mismatchRole === 'student' || mismatchRole === 'teacher') {
+    showPanel(`${mismatchRole}-login`);
+    IQ.toast('Your previous session had the wrong account role. Please sign in with your ' + mismatchRole + ' account.', 'error', 6500);
+    window.history.replaceState({}, '', '/');
   }
 
   document.querySelectorAll('[data-show]').forEach(link => {
