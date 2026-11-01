@@ -29,9 +29,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadExam();
   await loadQuestions();
 
-  document.getElementById('copy-controller').addEventListener('click', () => {
-    navigator.clipboard.writeText(currentExam.controller_id);
-    IQ.toast('Controller ID copied to clipboard.', 'success');
+  document.getElementById('copy-controller').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(currentExam.controller_id); IQ.toast('Controller ID copied to clipboard.', 'success'); }
+    catch (_) { window.prompt('Copy Controller ID:', currentExam.controller_id); }
+  });
+  document.getElementById('copy-student-link').addEventListener('click', async () => {
+    const shareUrl = `${window.location.origin}/?controllerId=${encodeURIComponent(currentExam.controller_id)}`;
+    try { await navigator.clipboard.writeText(shareUrl); IQ.toast('Student registration / login link copied.', 'success'); }
+    catch (_) { window.prompt('Copy this student exam link:', shareUrl); }
   });
 
   document.getElementById('toggle-active-btn').addEventListener('click', async () => {

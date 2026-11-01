@@ -121,8 +121,20 @@ async function loadExams() {
           <span>❓ ${ex.total_questions} questions</span>
           <span>✅ ${ex.submitted_count} submitted</span>
         </div>
+        <button class="btn btn-ghost btn-sm" type="button" data-share-controller="${IQ.escapeHtml(ex.controller_id)}" onclick="event.stopPropagation()">Copy Student Link</button>
       </div>
     `).join('');
+    grid.querySelectorAll('[data-share-controller]').forEach(button => button.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const controllerId = button.dataset.shareController;
+      const shareUrl = `${window.location.origin}/?controllerId=${encodeURIComponent(controllerId)}`;
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        IQ.toast('Student exam link copied. Share it with your students.', 'success');
+      } catch (_) {
+        window.prompt('Copy this student exam link:', shareUrl);
+      }
+    }));
   } catch (err) {
     grid.innerHTML = `<div class="glass-card empty-state" style="grid-column:1/-1;">Could not load exams: ${err.message}</div>`;
   }

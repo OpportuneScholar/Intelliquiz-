@@ -4,10 +4,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // If already logged in, redirect straight to the right dashboard.
   const role = IQ.getRole();
   const params = new URLSearchParams(window.location.search);
+  const sharedControllerId = (params.get('controllerId') || '').trim().toUpperCase();
+  if (sharedControllerId) {
+    const loginCode = document.getElementById('s-login-controller');
+    const registerCode = document.getElementById('s-reg-controller');
+    if (loginCode) loginCode.value = sharedControllerId;
+    if (registerCode) registerCode.value = sharedControllerId;
+  }
   let mismatchRole = params.get('session') === 'role-mismatch' ? params.get('role') : null;
   try { mismatchRole = mismatchRole || sessionStorage.getItem('iq_role_mismatch'); sessionStorage.removeItem('iq_role_mismatch'); } catch (_) {}
   if (!mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
-  if (!mismatchRole && role === 'student') return (window.location.href = '/student/dashboard.html');
+  if (!mismatchRole && role === 'student') return (window.location.href = sharedControllerId ? '/student/dashboard.html?controllerId=' + encodeURIComponent(sharedControllerId) : '/student/dashboard.html');
 
   // ---------- Tabs ----------
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -26,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelRole = name.split('-')[0];
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.role === panelRole));
   }
+
+  if (sharedControllerId && !mismatchRole) showPanel('student-login');
 
   if (mismatchRole === 'student' || mismatchRole === 'teacher') {
     showPanel(`${mismatchRole}-login`);
