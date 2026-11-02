@@ -3,6 +3,17 @@ const {Student,Exam,Question,Submission,Answer}=require('../database/db');
 const {verifyToken,requireRole}=require('../middleware/auth');
 const router=express.Router();router.use(verifyToken,requireRole('student'));
 const validId=id=>/^[a-f\d]{24}$/i.test(String(id));
+function localExamClock(){
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:process.env.EXAM_TIMEZONE||'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+ const value=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+ return {date:`${value.year}-${value.month}-${value.day}`,time:`${value.hour}:${value.minute}`};
+}
+function scheduleError(exam){
+ const now=localExamClock();
+ if(exam.start_date&&(now.date<exam.start_date||(now.date===exam.start_date&&exam.start_time&&now.time<exam.start_time)))return 'This examination has not started yet. Please return at the scheduled start time.';
+ if(exam.end_date&&(now.date>exam.end_date||(now.date===exam.end_date&&exam.end_time&&now.time>exam.end_time)))return 'The scheduled examination window has ended.';
+ return null;
+}
 const shuffle=a=>{const x=[...a];for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];}return x;};
 function stableOptionShuffle(options,submissionId,questionId){let seed=0;for(const ch of `${submissionId}:${questionId}`)seed=(seed*31+ch.charCodeAt(0))>>>0;return [...options].sort((a,b)=>{const score=k=>{let h=seed;for(const ch of k)h=(h*33+ch.charCodeAt(0))>>>0;return h;};return score(a.key)-score(b.key);});}
 async function context(req){const student=await Student.findById(req.user.id);if(!student)return {};const id=req.query.examId||req.body?.examId||req.user.examId;if(!id||!validId(id))return {student};const [exam,submission]=await Promise.all([Exam.findById(id),Submission.findOne({student_id:student._id,exam_id:id}).sort({created_at:-1})]);return {student,exam,submission};}
