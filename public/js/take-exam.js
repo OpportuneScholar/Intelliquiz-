@@ -154,7 +154,9 @@ async function flushPendingSaves() {
       pendingSaves[id] = task;
     }
   }
-  await Promise.all(Object.values(pendingSaves));
+  const settled = await Promise.allSettled(Object.values(pendingSaves));
+  const failed = settled.find(item => item.status === 'rejected' && item.reason?.code !== 'EXAM_TIME_EXPIRED');
+  if (failed) throw failed.reason;
 }
 
 // ---------------- Palette ----------------
