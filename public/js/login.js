@@ -137,7 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await IQ.api('/student/register', { method: 'POST', body, auth: false });
       IQ.setSession(data.token, data.user, 'student');
       IQ.toast(data.message, 'success');
-      const nextUrl = data.user.examId ? '/student/dashboard.html?examId=' + encodeURIComponent(data.user.examId) : '/student/dashboard.html';
+      const linkedControllerId = document.getElementById('s-reg-controller').value.trim().toUpperCase();
+      const nextUrl = linkedControllerId ? '/student/dashboard.html?controllerId=' + encodeURIComponent(linkedControllerId) : (data.user.examId ? '/student/dashboard.html?examId=' + encodeURIComponent(data.user.examId) : '/student/dashboard.html');
       setTimeout(() => (window.location.href = nextUrl), 500);
     } catch (err) {
       IQ.toast(err.message, 'error');
@@ -167,7 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await IQ.api('/student/login', { method: 'POST', body, auth: false });
       IQ.setSession(data.token, data.user, 'student');
       IQ.toast(data.message, 'success');
-      const nextUrl = data.user.examId ? '/student/dashboard.html?examId=' + encodeURIComponent(data.user.examId) : '/student/dashboard.html';
+      const linkedControllerId = document.getElementById('s-login-controller').value.trim().toUpperCase();
+      const nextUrl = linkedControllerId ? '/student/dashboard.html?controllerId=' + encodeURIComponent(linkedControllerId) : (data.user.examId ? '/student/dashboard.html?examId=' + encodeURIComponent(data.user.examId) : '/student/dashboard.html');
       setTimeout(() => (window.location.href = nextUrl), 500);
     } catch (err) {
       IQ.toast(err.message, 'error');
