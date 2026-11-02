@@ -10,12 +10,12 @@ const IQ = (() => {
 
   function readMap(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch { return {}; } }
   function getRole() { return localStorage.getItem(ROLE_KEY); }
-  function getToken(role = getRole()) {
+  function getToken(role = roleForPath(window.location.pathname)) {
     const tokens = readMap(TOKENS_KEY);
     if (role && tokens[role]) return tokens[role];
     return role && getRole() === role ? localStorage.getItem(TOKEN_KEY) : null;
   }
-  function getUser(role = getRole()) {
+  function getUser(role = roleForPath(window.location.pathname)) {
     const users = readMap(USERS_KEY);
     if (role && users[role]) return users[role];
     if (role && getRole() === role) { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
@@ -115,7 +115,7 @@ const IQ = (() => {
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
     return true;
   }
-  function logout() { clearSession(getRole()); window.location.href = '/'; }
+  function logout() { clearSession(roleForPath(window.location.pathname)); window.location.href = '/'; }
   function fmtDuration(seconds) { if (seconds == null) return '—'; return `${Math.floor(seconds / 60)}m ${seconds % 60}s`; }
   function fmtDate(iso) { if (!iso) return '—'; const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'); return d.toLocaleString(); }
   function escapeHtml(str) { if (str == null) return ''; return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
