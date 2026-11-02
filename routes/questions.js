@@ -34,7 +34,8 @@ router.post('/exams/:examId/questions',upload.single('image'),async(req,res,next
 router.put('/questions/:id',upload.single('image'),async(req,res,next)=>{try{
  if(!validId(req.params.id))return res.status(404).json({success:false,message:'Question not found.'});
  const question=await Question.findById(req.params.id);if(!question)return res.status(404).json({success:false,message:'Question not found.'});
- const exam=await ownsExam(question.exam_id,req.user.id);if(!exam)return res.status(403).json({success:false,message:'You do not have permission to edit this question.'});\n if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
+ const exam=await ownsExam(question.exam_id,req.user.id);if(!exam)return res.status(403).json({success:false,message:'You do not have permission to edit this question.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const map={questionText:'question_text',optionA:'option_a',optionB:'option_b',optionC:'option_c',optionD:'option_d',correctOption:'correct_option',explanation:'explanation',category:'category',difficulty:'difficulty',marks:'marks'};
  for(const [k,v] of Object.entries(req.body)){if(map[k]&&v!==undefined)question.set(map[k],k==='correctOption'?String(v).toLowerCase():k==='marks'?Number(v):v);}
  if(req.file)question.image_path=`/uploads/questions/${req.file.filename}`;
@@ -48,6 +49,7 @@ router.delete('/questions/:id',async(req,res,next)=>{try{
 }catch(err){next(err);}});
 router.post('/exams/:examId/questions/import',express.json(),async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const {questions}=req.body;if(!Array.isArray(questions)||!questions.length)return res.status(400).json({success:false,message:'Provide a non-empty array of questions to import.'});
  const docs=[],errors=[];questions.forEach((q,i)=>{if(!q.questionText||!q.optionA||!q.optionB||!q.optionC||!q.optionD||!['a','b','c','d'].includes(String(q.correctOption||'').toLowerCase())){errors.push(`Row ${i+1}: missing or invalid required fields, skipped.`);return;}docs.push({exam_id:exam._id,question_text:q.questionText,option_a:q.optionA,option_b:q.optionB,option_c:q.optionC,option_d:q.optionD,correct_option:String(q.correctOption).toLowerCase(),explanation:q.explanation,category:q.category,difficulty:q.difficulty||'medium',marks:Number(q.marks)||1});});
  if(docs.length)await Question.insertMany(docs);await syncMarks(exam._id);res.json({success:true,message:`Imported ${docs.length} of ${questions.length} questions.`,imported:docs.length,errors});
