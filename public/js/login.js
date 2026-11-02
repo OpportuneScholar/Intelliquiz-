@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const role = IQ.getRole();
   const params = new URLSearchParams(window.location.search);
   const sharedControllerId = (params.get('controllerId') || '').trim().toUpperCase();
+  // Initialize before shared-link handling: showPanel() updates these tab buttons.
+  const tabBtns = document.querySelectorAll('.tab-btn');
   let mismatchRole = params.get('session') === 'role-mismatch' ? params.get('role') : null;
   try { mismatchRole = mismatchRole || sessionStorage.getItem('iq_role_mismatch'); sessionStorage.removeItem('iq_role_mismatch'); } catch (_) {}
   if (!sharedControllerId && !mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
@@ -24,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---------- Tabs ----------
-  const tabBtns = document.querySelectorAll('.tab-btn');
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       tabBtns.forEach(b => b.classList.remove('active'));
