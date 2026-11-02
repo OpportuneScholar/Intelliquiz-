@@ -53,7 +53,7 @@ const IQ = (() => {
   }
 
   function roleForPath(path) {
-    if (/^\/student(?:\/|[-?]|$)/i.test(path)) return 'student';
+    if (/^\/(?:student|student-exam)(?:\/|[-?]|$)/i.test(path)) return 'student';
     if (/^\/(?:teacher|dashboard|exams|question-bank|questions)(?:\/|[-?]|$)/i.test(path)) return 'teacher';
     return getRole();
   }
