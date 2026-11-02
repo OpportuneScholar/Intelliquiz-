@@ -25,6 +25,7 @@ router.get('/exams/:examId/questions',async(req,res,next)=>{try{
 }catch(err){next(err);}});
 router.post('/exams/:examId/questions',upload.single('image'),async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const {questionText,optionA,optionB,optionC,optionD,correctOption,explanation,category,difficulty,marks}=req.body;
  if(!questionText||!optionA||!optionB||!optionC||!optionD||!correctOption)return res.status(400).json({success:false,message:'Question text, all four options, and the correct option are required.'});
  if(!['a','b','c','d'].includes(String(correctOption).toLowerCase()))return res.status(400).json({success:false,message:'Correct option must be a, b, c, or d.'});
