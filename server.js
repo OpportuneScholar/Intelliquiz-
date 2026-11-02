@@ -40,9 +40,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/teacher', teacherAuthRoutes);
 app.use('/api/student', studentAuthRoutes);
 app.use('/api/exams', examRoutes);
-app.use('/api', questionRoutes);
-app.use('/api/dashboard', teacherDashboardRoutes);
+// Mount this specific path before the broad /api question router, whose
+// teacher-only middleware would otherwise intercept /api/student-exam/*.
 app.use('/api/student-exam', studentExamRoutes);
+app.use('/api/dashboard', teacherDashboardRoutes);
+app.use('/api', questionRoutes);
 app.get('/api/health', (req, res) => {
   const databaseReady = mongoose.connection.readyState === 1;
   res.status(databaseReady ? 200 : 503).json({
