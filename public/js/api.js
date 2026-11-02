@@ -6,17 +6,27 @@ const IQ = (() => {
   const USER_KEY = 'iq_user';
   const ROLE_KEY = 'iq_role';
 
-  function getToken() { return localStorage.getItem(TOKEN_KEY); }
-  function getUser() { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
-  function getRole() { return localStorage.getItem(ROLE_KEY); }
+  // Auth state is tab-scoped. Teacher and student sessions in separate tabs
+  // must never overwrite one another on the same origin.
+  function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
+  function getUser() { try { return JSON.parse(sessionStorage.getItem(USER_KEY)); } catch { return null; } }
+  function getRole() { return sessionStorage.getItem(ROLE_KEY); }
 
   function setSession(token, user, role) {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    localStorage.setItem(ROLE_KEY, role);
+    // Remove legacy shared localStorage values so an old token cannot be reused.
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(ROLE_KEY);
+    sessionStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    sessionStorage.setItem(ROLE_KEY, role);
   }
 
   function clearSession() {
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(ROLE_KEY);
+    // Clean up values written by older versions of IntelliQuiz.
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(ROLE_KEY);
@@ -45,14 +55,11 @@ const IQ = (() => {
       setTimeout(() => (window.location.href = '/'), 1200);
     }
 
-    // A stale/mismatched token can survive when accounts are switched in the
-    // same browser. Never weaken the server role check; clear the bad session
-    // and reopen the matching login panel instead.
+    // A 403 is an authorization denial, not proof that the login token is
+    // expired. Keep the session intact and show the server's specific message;
+    // automatic logout here caused users to get trapped in a login loop.
     if (res.status === 403 && auth && data.code === 'ROLE_FORBIDDEN') {
-      clearSession();
-      const expectedRole = /\/student(?:\/|[-?]|$)/i.test(path) ? 'student' : 'teacher';
-      try { sessionStorage.setItem('iq_role_mismatch', expectedRole); } catch (_) {}
-      window.location.replace(`/?session=role-mismatch&role=${expectedRole}`);
+      data.message = data.message || 'This account cannot access this feature. Please switch to the correct account.';
     }
 
     if (!res.ok || data.success === false) {
