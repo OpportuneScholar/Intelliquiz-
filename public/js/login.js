@@ -167,7 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await IQ.api('/student/login', { method: 'POST', body, auth: false });
       IQ.setSession(data.token, data.user, 'student');
       IQ.toast(data.message, 'success');
-      setTimeout(() => (window.location.href = '/student/dashboard.html'), 500);
+      const nextUrl = data.user.examId ? '/student/dashboard.html?examId=' + encodeURIComponent(data.user.examId) : '/student/dashboard.html';
+      setTimeout(() => (window.location.href = nextUrl), 500);
     } catch (err) {
       IQ.toast(err.message, 'error');
     } finally {
