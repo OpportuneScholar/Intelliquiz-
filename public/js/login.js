@@ -4,10 +4,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // If already logged in, redirect straight to the right dashboard.
   const role = IQ.getRole();
   const params = new URLSearchParams(window.location.search);
+  const sharedControllerId = (params.get('controllerId') || '').trim().toUpperCase();
   let mismatchRole = params.get('session') === 'role-mismatch' ? params.get('role') : null;
   try { mismatchRole = mismatchRole || sessionStorage.getItem('iq_role_mismatch'); sessionStorage.removeItem('iq_role_mismatch'); } catch (_) {}
-  if (!mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
-  if (!mismatchRole && role === 'student') return (window.location.href = '/student/dashboard.html');
+  if (!sharedControllerId && !mismatchRole && role === 'teacher') return (window.location.href = '/teacher/dashboard.html');
+  if (!sharedControllerId && !mismatchRole && role === 'student') return (window.location.href = '/student/dashboard.html');
+
+  // Shared exam links prefill both student flows. Existing student sessions go to dashboard and auto-join.
+  if (sharedControllerId && role === 'student' && !mismatchRole) {
+    window.location.replace('/student/dashboard.html?controllerId=' + encodeURIComponent(sharedControllerId));
+    return;
+  }
+  if (sharedControllerId) {
+    const loginCode = document.getElementById('s-login-controller');
+    const registerCode = document.getElementById('s-reg-controller');
+    if (loginCode) loginCode.value = sharedControllerId;
+    if (registerCode) registerCode.value = sharedControllerId;
+    showPanel('student-login');
+  }
 
   // ---------- Tabs ----------
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -123,7 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await IQ.api('/student/register', { method: 'POST', body, auth: false });
       IQ.setSession(data.token, data.user, 'student');
       IQ.toast(data.message, 'success');
-      setTimeout(() => (window.location.href = '/student/dashboard.html'), 500);
+      const nextUrl = data.user.examId ? '/student/dashboard.html?examId=' + encodeURIComponent(data.user.examId) : '/student/dashboard.html';
+      setTimeout(() => (window.location.href = nextUrl), 500);
     } catch (err) {
       IQ.toast(err.message, 'error');
     } finally {
