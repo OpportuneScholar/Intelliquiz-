@@ -10,6 +10,10 @@ const storage=multer.diskStorage({destination:(req,file,cb)=>cb(null,uploadDir),
 const upload=multer({storage,limits:{fileSize:3*1024*1024},fileFilter:(req,file,cb)=>{const ok=['.png','.jpg','.jpeg','.gif','.webp'].includes(path.extname(file.originalname).toLowerCase());cb(ok?null:new Error('Only image files are allowed for question images.'),ok);}});
 const validId=id=>/^[a-f\d]{24}$/i.test(String(id));
 async function ownsExam(id,teacherId){return validId(id)?Exam.findOne({_id:id,teacher_id:teacherId}):null;}
+async function ensureExamEditable(examId){
+ const active=await require('../database/db').Submission.exists({exam_id:examId,status:{$in:['in_progress','submitted']}});
+ return !active;
+}
 async function syncMarks(examId){const result=await Question.aggregate([{$match:{exam_id:examId}},{$group:{_id:null,total:{$sum:'$marks'}}}]);await Exam.updateOne({_id:examId},{$set:{total_marks:result[0]?.total||0}});}
 router.get('/exams/:examId/questions',async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
@@ -21,6 +25,7 @@ router.get('/exams/:examId/questions',async(req,res,next)=>{try{
 }catch(err){next(err);}});
 router.post('/exams/:examId/questions',upload.single('image'),async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const {questionText,optionA,optionB,optionC,optionD,correctOption,explanation,category,difficulty,marks}=req.body;
  if(!questionText||!optionA||!optionB||!optionC||!optionD||!correctOption)return res.status(400).json({success:false,message:'Question text, all four options, and the correct option are required.'});
  if(!['a','b','c','d'].includes(String(correctOption).toLowerCase()))return res.status(400).json({success:false,message:'Correct option must be a, b, c, or d.'});
@@ -31,6 +36,7 @@ router.put('/questions/:id',upload.single('image'),async(req,res,next)=>{try{
  if(!validId(req.params.id))return res.status(404).json({success:false,message:'Question not found.'});
  const question=await Question.findById(req.params.id);if(!question)return res.status(404).json({success:false,message:'Question not found.'});
  const exam=await ownsExam(question.exam_id,req.user.id);if(!exam)return res.status(403).json({success:false,message:'You do not have permission to edit this question.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const map={questionText:'question_text',optionA:'option_a',optionB:'option_b',optionC:'option_c',optionD:'option_d',correctOption:'correct_option',explanation:'explanation',category:'category',difficulty:'difficulty',marks:'marks'};
  for(const [k,v] of Object.entries(req.body)){if(map[k]&&v!==undefined)question.set(map[k],k==='correctOption'?String(v).toLowerCase():k==='marks'?Number(v):v);}
  if(req.file)question.image_path=`/uploads/questions/${req.file.filename}`;
@@ -39,11 +45,12 @@ router.put('/questions/:id',upload.single('image'),async(req,res,next)=>{try{
 router.delete('/questions/:id',async(req,res,next)=>{try{
  if(!validId(req.params.id))return res.status(404).json({success:false,message:'Question not found.'});
  const question=await Question.findById(req.params.id);if(!question)return res.status(404).json({success:false,message:'Question not found.'});
- if(!await ownsExam(question.exam_id,req.user.id))return res.status(403).json({success:false,message:'You do not have permission to delete this question.'});
+ const exam=await ownsExam(question.exam_id,req.user.id);if(!exam)return res.status(403).json({success:false,message:'You do not have permission to delete this question.'});if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  await Promise.all([question.deleteOne(),Answer.deleteMany({question_id:question._id})]);await syncMarks(question.exam_id);res.json({success:true,message:'Question deleted successfully.'});
 }catch(err){next(err);}});
 router.post('/exams/:examId/questions/import',express.json(),async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const {questions}=req.body;if(!Array.isArray(questions)||!questions.length)return res.status(400).json({success:false,message:'Provide a non-empty array of questions to import.'});
  const docs=[],errors=[];questions.forEach((q,i)=>{if(!q.questionText||!q.optionA||!q.optionB||!q.optionC||!q.optionD||!['a','b','c','d'].includes(String(q.correctOption||'').toLowerCase())){errors.push(`Row ${i+1}: missing or invalid required fields, skipped.`);return;}docs.push({exam_id:exam._id,question_text:q.questionText,option_a:q.optionA,option_b:q.optionB,option_c:q.optionC,option_d:q.optionD,correct_option:String(q.correctOption).toLowerCase(),explanation:q.explanation,category:q.category,difficulty:q.difficulty||'medium',marks:Number(q.marks)||1});});
  if(docs.length)await Question.insertMany(docs);await syncMarks(exam._id);res.json({success:true,message:`Imported ${docs.length} of ${questions.length} questions.`,imported:docs.length,errors});
@@ -94,6 +101,7 @@ router.post('/question-bank/import',async(req,res,next)=>{try{
 router.post('/exams/:examId/questions/from-bank',async(req,res,next)=>{try{
  const exam=await ownsExam(req.params.examId,req.user.id);
  if(!exam)return res.status(404).json({success:false,message:'Exam not found.'});
+ if(!await ensureExamEditable(exam._id))return res.status(409).json({success:false,message:'Questions are locked because a student has already started or submitted this exam.'});
  const ids=Array.isArray(req.body.questionIds)?req.body.questionIds:[];
  if(!ids.length)return res.status(400).json({success:false,message:'Select at least one saved question.'});
  const saved=await UnitQuestion.find({_id:{$in:ids},teacher_id:req.user.id}).lean();
