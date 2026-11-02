@@ -1,155 +1,129 @@
 // public/js/api.js
-// Shared helpers: API fetch wrapper, toasts, theme, auth/session utilities.
+// Shared helpers: role-isolated API authentication, toasts, theme and formatting.
 
 const IQ = (() => {
   const TOKEN_KEY = 'iq_token';
   const USER_KEY = 'iq_user';
   const ROLE_KEY = 'iq_role';
+  const TOKENS_KEY = 'iq_tokens';
+  const USERS_KEY = 'iq_users';
 
-  function getToken() { return localStorage.getItem(TOKEN_KEY); }
-  function getUser() { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
+  function readMap(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch { return {}; } }
   function getRole() { return localStorage.getItem(ROLE_KEY); }
-
+  function getToken(role = getRole()) {
+    const tokens = readMap(TOKENS_KEY);
+    if (role && tokens[role]) return tokens[role];
+    return role && getRole() === role ? localStorage.getItem(TOKEN_KEY) : null;
+  }
+  function getUser(role = getRole()) {
+    const users = readMap(USERS_KEY);
+    if (role && users[role]) return users[role];
+    if (role && getRole() === role) { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } }
+    return null;
+  }
   function setSession(token, user, role) {
+    const tokens = readMap(TOKENS_KEY), users = readMap(USERS_KEY);
+    tokens[role] = token; users[role] = user;
+    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    // Keep legacy keys for older pages while role-specific keys remain authoritative.
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     localStorage.setItem(ROLE_KEY, role);
   }
+  function clearSession(role) {
+    if (role) {
+      const tokens = readMap(TOKENS_KEY), users = readMap(USERS_KEY);
+      delete tokens[role]; delete users[role];
+      localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      if (getRole() === role) {
+        const nextRole = Object.keys(tokens)[0] || null;
+        if (nextRole) {
+          localStorage.setItem(ROLE_KEY, nextRole);
+          localStorage.setItem(TOKEN_KEY, tokens[nextRole]);
+          localStorage.setItem(USER_KEY, JSON.stringify(users[nextRole] || null));
+        } else {
+          localStorage.removeItem(ROLE_KEY); localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
+        }
+      }
+      return;
+    }
+    [TOKEN_KEY, USER_KEY, ROLE_KEY, TOKENS_KEY, USERS_KEY].forEach(k => localStorage.removeItem(k));
+  }
 
-  function clearSession() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(ROLE_KEY);
+  function roleForPath(path) {
+    if (/^\/student(?:\/|[-?]|$)/i.test(path)) return 'student';
+    if (/^\/(?:teacher|dashboard|exams|question-bank|questions)(?:\/|[-?]|$)/i.test(path)) return 'teacher';
+    return getRole();
   }
 
   async function api(path, { method = 'GET', body, isForm = false, auth = true } = {}) {
     const headers = {};
     if (!isForm) headers['Content-Type'] = 'application/json';
+    const requestRole = roleForPath(path);
     if (auth) {
-      const t = getToken();
-      if (t) headers['Authorization'] = `Bearer ${t}`;
+      const token = getToken(requestRole);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
     }
-
     const res = await fetch(`/api${path}`, {
-      method,
-      headers,
+      method, headers,
       body: body ? (isForm ? body : JSON.stringify(body)) : undefined
     });
-
     let data;
     try { data = await res.json(); } catch { data = { success: false, message: 'Unexpected server response.' }; }
 
+    // Only a genuine authentication failure invalidates the token for this role.
+    // A 403 role/permission denial must be shown to the user, not force-logout.
     if (res.status === 401 && auth) {
-      clearSession();
-      toast('Your session has expired. Please log in again.', 'error');
+      clearSession(requestRole);
+      toast(data.message || 'Your session has expired. Please log in again.', 'error');
       setTimeout(() => (window.location.href = '/'), 1200);
     }
-
-    // A stale/mismatched token can survive when accounts are switched in the
-    // same browser. Never weaken the server role check; clear the bad session
-    // and reopen the matching login panel instead.
-    if (res.status === 403 && auth && data.code === 'ROLE_FORBIDDEN') {
-      clearSession();
-      const expectedRole = /\/student(?:\/|[-?]|$)/i.test(path) ? 'student' : 'teacher';
-      try { sessionStorage.setItem('iq_role_mismatch', expectedRole); } catch (_) {}
-      window.location.replace(`/?session=role-mismatch&role=${expectedRole}`);
-    }
-
     if (!res.ok || data.success === false) {
       const err = new Error(data.message || 'Something went wrong.');
-      err.data = data;
-      err.status = res.status;
+      err.data = data; err.status = res.status; err.code = data.code;
       throw err;
     }
     return data;
   }
 
-  // ---------- Toasts ----------
   function ensureToastRegion() {
     let region = document.getElementById('toast-region');
-    if (!region) {
-      region = document.createElement('div');
-      region.id = 'toast-region';
-      document.body.appendChild(region);
-    }
+    if (!region) { region = document.createElement('div'); region.id = 'toast-region'; document.body.appendChild(region); }
     return region;
   }
-
   function toast(message, type = 'info', duration = 4000) {
-    const region = ensureToastRegion();
-    const el = document.createElement('div');
+    const region = ensureToastRegion(), el = document.createElement('div');
     el.className = `toast ${type}`;
     const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
-    el.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-    region.appendChild(el);
-    setTimeout(() => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateX(16px)';
-      el.style.transition = 'all .25s ease';
-      setTimeout(() => el.remove(), 260);
-    }, duration);
+    const label = document.createElement('span'); label.textContent = icon;
+    const text = document.createElement('span'); text.textContent = String(message || '');
+    el.append(label, text); region.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(16px)'; el.style.transition = 'all .25s ease'; setTimeout(() => el.remove(), 260); }, duration);
   }
-
-  // ---------- Theme ----------
-  function initTheme() {
-    const saved = localStorage.getItem('iq_theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', saved);
-  }
+  function initTheme() { document.documentElement.setAttribute('data-theme', localStorage.getItem('iq_theme') || 'dark'); }
   function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('iq_theme', next);
-    return next;
+    const next = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next); localStorage.setItem('iq_theme', next); return next;
   }
-
-  // ---------- Auth guards ----------
   function requireRole(role) {
-    const currentRole = getRole();
-    const token = getToken();
-    if (!token || currentRole !== role) {
-      window.location.href = '/';
-      return false;
-    }
+    const token = getToken(role), user = getUser(role);
+    if (!token) { window.location.href = '/'; return false; }
+    localStorage.setItem(ROLE_KEY, role);
+    localStorage.setItem(TOKEN_KEY, token);
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
     return true;
   }
+  function logout() { clearSession(getRole()); window.location.href = '/'; }
+  function fmtDuration(seconds) { if (seconds == null) return '—'; return `${Math.floor(seconds / 60)}m ${seconds % 60}s`; }
+  function fmtDate(iso) { if (!iso) return '—'; const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z'); return d.toLocaleString(); }
+  function escapeHtml(str) { if (str == null) return ''; return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+  function hideSplash() { const splash = document.getElementById('splash'); if (splash) setTimeout(() => splash.classList.add('hidden'), 350); }
 
-  function logout() {
-    clearSession();
-    window.location.href = '/';
-  }
-
-  // ---------- Small formatting helpers ----------
-  function fmtDuration(seconds) {
-    if (seconds == null) return '—';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m ${s}s`;
-  }
-  function fmtDate(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z');
-    return d.toLocaleString();
-  }
-  function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-  }
-
-  function hideSplash() {
-    const splash = document.getElementById('splash');
-    if (splash) setTimeout(() => splash.classList.add('hidden'), 350);
-  }
-
-  return {
-    api, toast, initTheme, toggleTheme, requireRole, logout,
-    getToken, getUser, getRole, setSession, clearSession,
-    fmtDuration, fmtDate, escapeHtml, hideSplash
-  };
+  return { api, toast, initTheme, toggleTheme, requireRole, logout, getToken, getUser, getRole, setSession, clearSession, fmtDuration, fmtDate, escapeHtml, hideSplash };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-  IQ.initTheme();
-  window.addEventListener('load', IQ.hideSplash);
-  setTimeout(IQ.hideSplash, 1500); // fallback in case 'load' already fired
+  IQ.initTheme(); window.addEventListener('load', IQ.hideSplash); setTimeout(IQ.hideSplash, 1500);
 });
