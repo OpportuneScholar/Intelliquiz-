@@ -195,6 +195,8 @@ async function doSubmit(isAutoSubmit = false) {
   document.getElementById('submit-modal').style.display = 'none';
 
   try {
+    // Flush debounced answers before final submission so the last click is not lost.
+    await flushPendingSaves();
     await IQ.api('/student-exam/submit', { method: 'POST', body: { examId: examData.examId } });
     IQ.toast(isAutoSubmit ? 'Time expired — your exam was submitted automatically.' : 'Exam submitted successfully!', 'success');
     setTimeout(() => (window.location.href = '/student/result.html?examId='+encodeURIComponent(examData.examId)), 900);
