@@ -56,6 +56,14 @@
       <button class="btn btn-primary btn-sm" id="toggle-active-btn">Activate Exam</button>
     </div>
   </div>
+  <div class="glass-card card-pad mt-16" id="share-link-panel" hidden>
+    <h3>Student Exam Link</h3>
+    <p class="text-muted">Share this link after activating the exam. Students can register or log in, join this exam, submit it and view their result.</p>
+    <div class="flex gap-12" style="flex-wrap:wrap;align-items:center">
+      <input class="input" id="student-share-link" readonly style="flex:1;min-width:220px">
+      <button class="btn btn-primary btn-sm" id="copy-student-share-link" type="button">Copy Student Link</button>
+    </div>
+  </div>
 
   <div class="tabbar">
     <button class="active" data-tab="questions">Questions</button>
