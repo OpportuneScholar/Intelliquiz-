@@ -30,6 +30,8 @@ router.post('/start',async(req,res,next)=>{try{
  if(submission.status==='submitted'){
   const attempts=await Submission.countDocuments({student_id:student._id,exam_id:exam._id});
   if(attempts>=Math.max(1,Number(exam.max_attempts)||1))return res.status(403).json({success:false,locked:true,message:'You have used all allowed attempts for this examination.'});
+  if(exam.status!=='active')return res.status(403).json({success:false,message:'This examination is not active yet. Your next attempt has not been used.'});
+  const nextWindowError=scheduleError(exam);if(nextWindowError)return res.status(403).json({success:false,code:'EXAM_NOT_IN_WINDOW',message:nextWindowError});
   try{submission=await Submission.create({student_id:student._id,exam_id:exam._id,status:'not_started',attempt_number:attempts+1});}catch(createError){if(createError?.code===11000)return res.status(409).json({success:false,locked:true,message:'Another start request was processed for this attempt. Refresh the exam page and continue.'});throw createError;}
  }
  if(submission.status!=='in_progress'){
