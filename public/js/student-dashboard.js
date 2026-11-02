@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded',async function(){
  if(!IQ.requireRole('student'))return;
  const user=IQ.getUser()||{},$=id=>document.getElementById(id);
+ const sharedControllerId=(new URLSearchParams(window.location.search).get('controllerId')||'').trim().toUpperCase();
  $('welcome-text').textContent=user.name?'Hi, '+user.name:'Student';$('welcome-name').textContent=user.name||'Student';
  $('theme-toggle').textContent=localStorage.getItem('iq_theme')==='light'?'☀️':'🌙';
  $('theme-toggle').addEventListener('click',()=>{$('theme-toggle').textContent=IQ.toggleTheme()==='light'?'☀️':'🌙';});$('logout-btn').addEventListener('click',IQ.logout);
