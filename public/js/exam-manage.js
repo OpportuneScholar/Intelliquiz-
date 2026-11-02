@@ -29,6 +29,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadExam();
   await loadQuestions();
 
+  document.getElementById('copy-student-share-link').addEventListener('click', async () => {
+    const field = document.getElementById('student-share-link');
+    try { await navigator.clipboard.writeText(field.value); IQ.toast('Student exam link copied.', 'success'); }
+    catch (_) { field.select(); IQ.toast('Select and copy the student link.', 'info'); }
+  });
   document.getElementById('copy-controller').addEventListener('click', () => {
     navigator.clipboard.writeText(currentExam.controller_id);
     IQ.toast('Controller ID copied to clipboard.', 'success');
@@ -100,6 +105,11 @@ function renderExamHeader() {
   badge.textContent = currentExam.status;
   badge.className = `badge badge-${currentExam.status}`;
   document.getElementById('toggle-active-btn').textContent = currentExam.status === 'active' ? 'Deactivate Exam' : 'Activate Exam';
+  const sharePanel = document.getElementById('share-link-panel');
+  if (sharePanel) {
+    sharePanel.hidden = currentExam.status !== 'active';
+    document.getElementById('student-share-link').value = window.location.origin + '/?controllerId=' + encodeURIComponent(currentExam.controller_id);
+  }
 }
 
 function fillSettingsForm() {
