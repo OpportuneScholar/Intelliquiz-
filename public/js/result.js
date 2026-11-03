@@ -11,7 +11,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('logout-btn').addEventListener('click', IQ.logout);
 
   try {
-    const { exam, student, result, breakdown } = await IQ.api('/student-exam/result'+(new URLSearchParams(location.search).get('examId')?'?examId='+encodeURIComponent(new URLSearchParams(location.search).get('examId')):''));
+    const params = new URLSearchParams(location.search);
+    const query = new URLSearchParams();
+    if (params.get('examId')) query.set('examId', params.get('examId'));
+    if (params.get('attemptId')) query.set('attemptId', params.get('attemptId'));
+    const { exam, student, result, breakdown } = await IQ.api('/student-exam/result' + (query.toString() ? '?' + query.toString() : ''));
 
     document.getElementById('score-hero').innerHTML = `
       <div class="score-ring" style="--pct:${result.percentage}">
