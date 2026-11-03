@@ -1,1 +1,63 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Question Bank — IntelliQuiz</title><link rel="icon" href="/assets/logo.png"><link rel="stylesheet" href="/css/style.css"><style>.teacher-nav{display:flex;gap:10px;flex-wrap:wrap;padding:12px 24px;max-width:1300px;margin:auto;border-bottom:1px solid var(--glass-border)}.teacher-nav a{padding:10px 15px;border:1px solid var(--glass-border);border-radius:12px;background:var(--glass-bg);font-size:13px;font-weight:600}.qrow{padding:16px;margin:10px 0}.actions{display:flex;gap:10px;flex-wrap:wrap}.hint{font-size:12px;color:var(--text-muted)}</style></head><body><div class="topbar"><div class="topbar-inner"><div class="brand"><img src="/assets/logo.png"><div class="brand-name">Intelli<span class="accent">Quiz</span></div></div><div class="flex items-center gap-12"><button class="theme-toggle" id="theme-toggle">🌙</button><button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button></div></div></div><nav class="teacher-nav"><a href="/teacher/dashboard.html">▦ Dashboard</a><a href="/teacher/dashboard.html#exam-grid">▤ Examinations</a><a href="/teacher/results.html">▣ All Results</a><a href="/teacher/question-bank.html">☷ Question Bank</a></nav><main class="page-shell"><div class="flex justify-between items-center mb-16" style="flex-wrap:wrap;gap:12px"><h2>Unit-wise Question Bank</h2><button class="btn btn-ghost" id="template-btn">⬇ Download CSV Template</button></div><div class="glass-card card-pad"><h3>Import questions in bulk</h3><p class="text-muted">CSV columns: questionText, optionA, optionB, optionC, optionD, correctOption, explanation, difficulty, marks. correctOption must be A, B, C or D.</p><div class="row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="field"><label>Subject</label><input class="input" id="subject" placeholder="Data Structures" required></div><div class="field"><label>Unit</label><input class="input" id="unit" placeholder="Unit 1" required></div></div><div class="field"><label>CSV file</label><input class="input" id="csv-file" type="file" accept=".csv,text/csv"></div><div class="actions"><button class="btn btn-primary" id="import-btn">Import and Save</button><button class="btn btn-ghost" id="refresh-btn">Refresh bank</button></div><p id="message" class="hint"></p></div><div class="flex justify-between items-center mt-24 mb-16"><h3>Saved questions</h3><select class="input" id="unit-filter" style="max-width:240px"><option value="">All units</option></select></div><div id="questions"></div></main><div id="toast-region"></div><script src="/js/api.js"></script><script src="/js/question-bank.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Question Bank — IntelliQuiz</title><link rel="icon" href="/assets/logo.png"><link rel="stylesheet" href="/css/style.css">
+<style>
+.teacher-nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px 24px;max-width:1300px;margin:auto;border-bottom:1px solid var(--glass-border)}
+.teacher-nav a{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border:1px solid transparent;border-radius:10px;color:var(--text-muted);font-size:13px;font-weight:650;text-decoration:none;transition:.2s}
+.teacher-nav a:hover{background:var(--glass-bg);color:var(--text)}
+.teacher-nav a[aria-current=page]{background:linear-gradient(120deg,rgba(93,95,245,.2),rgba(43,190,226,.12));border-color:rgba(111,130,255,.35);color:var(--text)}
+.qb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.qb-subtitle{color:var(--text-muted);margin-top:5px;font-size:14px}
+.qb-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:6px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;margin-bottom:16px}
+.qb-tab{border:0;border-radius:10px;padding:11px 16px;background:transparent;color:var(--text-muted);font-weight:700;cursor:pointer}
+.qb-tab[aria-selected=true]{background:linear-gradient(110deg,#5b63f5,#25b9df);color:white;box-shadow:0 5px 18px #5268e544}
+.qb-panel{display:none}.qb-panel.active{display:block}
+.qb-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.qb-form-grid .full{grid-column:1/-1}
+.qb-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.qb-note{font-size:12px;color:var(--text-muted);line-height:1.55}
+.qb-toolbar{display:grid;grid-template-columns:minmax(180px,2fr) repeat(2,minmax(130px,1fr));gap:10px;margin:16px 0}
+.qb-stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.qb-stat{padding:10px 14px;border:1px solid var(--glass-border);border-radius:12px;background:var(--glass-bg);font-size:13px;color:var(--text-muted)}
+.qb-stat strong{color:var(--text);font-size:17px;margin-right:5px}
+.qb-question{padding:17px;margin:12px 0}
+.qb-question p{line-height:1.55}
+.qb-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}
+.qb-option{padding:9px 11px;border-radius:9px;background:var(--glass-bg);font-size:13px;color:var(--text-muted)}
+.qb-option.correct{border:1px solid #20b98166;color:#35c994}
+.qb-empty{text-align:center;padding:34px 16px}
+.qb-empty p{color:var(--text-muted)}
+@media(max-width:640px){.teacher-nav{padding:10px 14px;gap:5px}.teacher-nav a{padding:9px 10px;font-size:12px}.qb-form-grid,.qb-toolbar,.qb-options{grid-template-columns:1fr}.qb-head h2{font-size:22px}.qb-tab{flex:1;padding:10px 9px;font-size:12px}}
+</style></head>
+<body>
+<div class="topbar"><div class="topbar-inner"><div class="brand"><img src="/assets/logo.png"><div class="brand-name">Intelli<span class="accent">Quiz</span></div></div><div class="flex items-center gap-12"><button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙</button><button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button></div></div></div>
+<nav class="teacher-nav" aria-label="Teacher navigation"><a href="/teacher/dashboard.html">▦ Dashboard</a><a href="/teacher/dashboard.html#exam-grid">▤ Examinations</a><a href="/teacher/results.html">▣ All Results</a><a href="/teacher/question-bank.html" aria-current="page">☷ Question Bank</a></nav>
+<main class="page-shell">
+ <header class="qb-head"><div><h2>Question Bank</h2><p class="qb-subtitle">Create, organise and reuse questions across your examinations.</p></div><button class="btn btn-ghost" id="template-btn">↓ Download CSV template</button></header>
+ <div class="qb-stats"><div class="qb-stat"><strong id="total-count">0</strong> Questions</div><div class="qb-stat"><strong id="subject-count">0</strong> Subjects</div><div class="qb-stat"><strong id="unit-count">0</strong> Units</div></div>
+ <div class="qb-tabs" role="tablist" aria-label="Question creation method"><button class="qb-tab" id="manual-tab" role="tab" aria-selected="true" aria-controls="manual-panel">＋ Add manually</button><button class="qb-tab" id="import-tab" role="tab" aria-selected="false" aria-controls="import-panel">⇧ Import CSV</button></div>
+ <section class="glass-card card-pad qb-panel active" id="manual-panel" role="tabpanel" aria-labelledby="manual-tab">
+  <h3>Add a question</h3><p class="qb-note">Enter one multiple-choice question. It will be saved to your personal question bank and can be reused in exams.</p>
+  <form id="manual-form" class="qb-form-grid">
+   <div class="field"><label for="manual-subject">Subject *</label><input class="input" id="manual-subject" placeholder="e.g. Data Structures" required maxlength="100"></div>
+   <div class="field"><label for="manual-unit">Unit / Chapter *</label><input class="input" id="manual-unit" placeholder="e.g. Unit 1 — Arrays" required maxlength="100"></div>
+   <div class="field full"><label for="manual-question">Question *</label><textarea class="input" id="manual-question" rows="3" placeholder="Enter the question..." required maxlength="3000"></textarea></div>
+   <div class="field"><label for="manual-a">Option A *</label><input class="input" id="manual-a" required maxlength="1000"></div><div class="field"><label for="manual-b">Option B *</label><input class="input" id="manual-b" required maxlength="1000"></div>
+   <div class="field"><label for="manual-c">Option C *</label><input class="input" id="manual-c" required maxlength="1000"></div><div class="field"><label for="manual-d">Option D *</label><input class="input" id="manual-d" required maxlength="1000"></div>
+   <div class="field"><label for="manual-correct">Correct answer *</label><select class="input" id="manual-correct" required><option value="">Choose correct option</option><option value="a">Option A</option><option value="b">Option B</option><option value="c">Option C</option><option value="d">Option D</option></select></div>
+   <div class="field"><label for="manual-difficulty">Difficulty</label><select class="input" id="manual-difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+   <div class="field"><label for="manual-marks">Marks</label><input class="input" id="manual-marks" type="number" min="0.25" max="100" step="0.25" value="1"></div>
+   <div class="field"><label for="manual-explanation">Explanation (optional)</label><input class="input" id="manual-explanation" placeholder="Explain why this answer is correct" maxlength="2000"></div>
+   <div class="full qb-actions"><button class="btn btn-primary" id="manual-save" type="submit">Save question</button><button class="btn btn-ghost" type="reset">Clear form</button><span id="manual-message" class="qb-note" aria-live="polite"></span></div>
+  </form>
+ </section>
+ <section class="glass-card card-pad qb-panel" id="import-panel" role="tabpanel" aria-labelledby="import-tab">
+  <h3>Import questions in bulk</h3><p class="qb-note">Upload a CSV file with columns: questionText, optionA, optionB, optionC, optionD, correctOption, explanation, difficulty, marks. Correct option must be A, B, C or D. Maximum 1,000 questions per import.</p>
+  <div class="qb-form-grid"><div class="field"><label for="subject">Subject *</label><input class="input" id="subject" placeholder="Data Structures" required></div><div class="field"><label for="unit">Unit / Chapter *</label><input class="input" id="unit" placeholder="Unit 1" required></div><div class="field full"><label for="csv-file">CSV file *</label><input class="input" id="csv-file" type="file" accept=".csv,text/csv"></div></div>
+  <div class="qb-actions"><button class="btn btn-primary" id="import-btn">Import and save</button><span id="message" class="qb-note" aria-live="polite"></span></div>
+ </section>
+ <section class="mt-24">
+  <div class="flex justify-between items-center" style="gap:12px;flex-wrap:wrap"><div><h3>Saved questions</h3><p class="qb-note">Search and filter your saved questions by subject or unit.</p></div><button class="btn btn-ghost btn-sm" id="refresh-btn">↻ Refresh</button></div>
+  <div class="qb-toolbar"><input class="input" id="search-filter" type="search" placeholder="Search question text..."><select class="input" id="subject-filter"><option value="">All subjects</option></select><select class="input" id="unit-filter"><option value="">All units</option></select></div>
+  <div id="questions" aria-live="polite"><div class="glass-card qb-empty">Loading questions…</div></div>
+ </section>
+</main><div id="toast-region"></div><script src="/js/api.js"></script><script src="/js/question-bank.js"></script></body></html>
