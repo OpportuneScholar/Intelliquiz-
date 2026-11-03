@@ -24,7 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('prev-btn').addEventListener('click', () => go(currentIndex - 1));
-  document.getElementById('next-btn').addEventListener('click', () => go(currentIndex + 1));
+  document.getElementById('next-btn').addEventListener('click', () => {
+    if (examData && currentIndex === examData.questions.length - 1) openSubmitConfirm();
+    else go(currentIndex + 1);
+  });
   document.getElementById('clear-btn').addEventListener('click', clearResponse);
   document.getElementById('bookmark-btn').addEventListener('click', toggleBookmark);
   document.getElementById('submit-btn').addEventListener('click', openSubmitConfirm);
