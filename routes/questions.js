@@ -69,6 +69,18 @@ router.get('/question-bank/units',async(req,res,next)=>{try{
  res.json({success:true,units:rows.map(x=>({subject:x._id.subject||'',unit:x._id.unit,count:x.count}))});
 }catch(err){next(err);}});
 
+router.post('/question-bank/questions',async(req,res,next)=>{try{
+ const {subject,unit,questionText,optionA,optionB,optionC,optionD,correctOption,explanation,difficulty,marks}=req.body||{};
+ const required=[subject,unit,questionText,optionA,optionB,optionC,optionD,correctOption];
+ if(required.some(v=>!String(v||'').trim()))return res.status(400).json({success:false,message:'Subject, unit, question, all four options and correct answer are required.'});
+ const correct=String(correctOption).trim().toLowerCase();
+ if(!['a','b','c','d'].includes(correct))return res.status(400).json({success:false,message:'Correct answer must be A, B, C or D.'});
+ const normalizedSubject=String(subject).trim(),normalizedUnit=String(unit).trim(),normalizedText=String(questionText).trim();
+ const duplicate=await UnitQuestion.findOne({teacher_id:req.user.id,subject:normalizedSubject,unit:normalizedUnit,question_text:normalizedText}).select('_id').lean();
+ if(duplicate)return res.status(409).json({success:false,message:'This question already exists in the selected subject and unit.'});
+ const question=await UnitQuestion.create({teacher_id:req.user.id,subject:normalizedSubject,unit:normalizedUnit,question_text:normalizedText,option_a:String(optionA).trim(),option_b:String(optionB).trim(),option_c:String(optionC).trim(),option_d:String(optionD).trim(),correct_option:correct,explanation:String(explanation||'').trim(),difficulty:['easy','medium','hard'].includes(String(difficulty).toLowerCase())?String(difficulty).toLowerCase():'medium',marks:Math.max(0.25,Number(marks)||1)});
+ res.status(201).json({success:true,message:'Question added to your bank.',question:{...question.toObject(),id:String(question._id)}});
+}catch(err){next(err);}});
 router.get('/question-bank/questions',async(req,res,next)=>{try{
  const filter={teacher_id:req.user.id};
  if(req.query.subject)filter.subject=String(req.query.subject).trim();
