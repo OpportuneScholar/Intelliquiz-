@@ -47,6 +47,12 @@
   .legend span { display:flex; align-items:center; gap:8px; }
   .legend .box { width:12px; height:12px; border-radius:3px; }
 
+  .exam-gate{z-index:500;background:rgba(4,8,24,.92);backdrop-filter:blur(14px)}
+  .exam-gate .modal{width:min(480px,calc(100vw - 28px));text-align:center;padding:28px}
+  .exam-gate .gate-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:18px;margin:0 auto 16px;background:var(--grad-primary);font-size:27px}
+  .exam-gate p{line-height:1.6}
+  .exam-gate .gate-actions{display:grid;gap:10px;margin-top:22px}
+  .exam-mode-note{font-size:12px;color:var(--text-muted);margin-top:12px}
   .modal-overlay.confirm .modal { max-width: 420px; text-align:center; }
 </style>
 </head>
@@ -91,6 +97,32 @@
       <span><span class="box" style="background:var(--glass-bg);border:1px solid var(--glass-border);"></span> Not answered</span>
       <span><span class="box" style="background:var(--glass-bg);border:2px solid var(--cyan-400);"></span> Current</span>
       <span>★ Bookmarked</span>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen start gate: browser fullscreen requires a direct user gesture. -->
+<div class="modal-overlay confirm exam-gate" id="exam-start-modal" style="display:flex;">
+  <div class="modal glass-card glass-card--strong card-pad">
+    <div class="gate-icon">⛶</div>
+    <h2>Ready to begin?</h2>
+    <p class="text-muted mt-16">Your examination will start when you continue. IntelliQuiz will enter fullscreen mode, protect the exam page from accidental back navigation, and save your answers automatically.</p>
+    <div class="gate-actions">
+      <button class="btn btn-primary btn-block" id="start-exam-btn">Enter Fullscreen &amp; Start</button>
+    </div>
+    <p class="exam-mode-note">Keep this page open until you submit. If fullscreen is not supported, navigation protection and autosave will still remain active.</p>
+  </div>
+</div>
+
+<!-- Displayed if the student exits fullscreen before submitting. -->
+<div class="modal-overlay confirm exam-gate" id="fullscreen-warning" style="display:none;">
+  <div class="modal glass-card glass-card--strong card-pad">
+    <div class="gate-icon">⚠</div>
+    <h3>Fullscreen was exited</h3>
+    <p class="text-muted mt-16">Your exam is still in progress. Return to fullscreen to continue in focus mode. Your answers remain saved.</p>
+    <div class="gate-actions">
+      <button class="btn btn-primary btn-block" id="restore-fullscreen-btn">Return to Fullscreen</button>
+      <button class="btn btn-ghost btn-block" id="continue-without-fullscreen-btn">Continue without Fullscreen</button>
     </div>
   </div>
 </div>
